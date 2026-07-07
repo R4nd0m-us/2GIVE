@@ -89,6 +89,10 @@ else
 fi
 echo "[+] Architecture: $ARCH ($HOST)"
 
+echo ""
+echo "[*] Compiler: $(g++ --version | head -n1)"
+echo "[*] Make: $(make --version | head -n1)"
+
 # Base depends directory
 DEPENDS="$SCRIPT_DIR/depends"
 
@@ -153,15 +157,31 @@ if [ ! -f "$BOOST_DIR/stage/lib/libboost_system.a" ]; then
     echo "    Compiling..."
     ./b2 link=static runtime-link=static threading=multi address-model=64 \
         threadapi=pthread \
-        cxxflags="-pthread" linkflags="-pthread" \
+        cxxflags="-std=c++11 -pthread -fPIC" \
+        linkflags="-pthread -std=c++11" \
         --with-system --with-filesystem --with-program_options \
         --with-thread --with-chrono --with-date_time --with-atomic \
         -j1 \
-        stage || fail "b2 build failed for Boost" "Boost compile"
+        --layout=system \
+        stage 2>&1 | tee boost-build.log || fail "b2 build failed for Boost (see boost-build.log)" "Boost compile"
     
     mkdir -p "$BOOST_DIR" || fail "Cannot mkdir $BOOST_DIR" "Boost install"
     cp -r boost "$BOOST_DIR/" || fail "Cannot copy boost headers" "Boost install"
     cp -r stage "$BOOST_DIR/" || fail "Cannot copy boost stage libs" "Boost install"
+    
+    echo "    Verifying Boost libraries..."
+    for lib in "$BOOST_DIR/stage/lib/libboost_system.a" \
+              "$BOOST_DIR/stage/lib/libboost_filesystem.a" \
+              "$BOOST_DIR/stage/lib/libboost_program_options.a" \
+              "$BOOST_DIR/stage/lib/libboost_thread.a" \
+              "$BOOST_DIR/stage/lib/libboost_chrono.a" \
+              "$BOOST_DIR/stage/lib/libboost_date_time.a" \
+              "$BOOST_DIR/stage/lib/libboost_atomic.a"; do
+        if [ ! -f "$lib" ]; then
+            fail "Boost library missing after build: $lib" "Boost verify"
+        fi
+    done
+    echo "    [+] All Boost libraries verified"
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "Boost cleanup"
     echo "[+] Boost 1.53.0 built successfully"
