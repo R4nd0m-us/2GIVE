@@ -10,12 +10,16 @@ set -e
 #   - Berkeley DB 5.3.28
 #   - PCRE 8.45
 #   - zlib 1.2.13
+#   - expat 2.5.0    (fontconfig dependency)
+#   - FreeType 2.13.2
+#   - libpng 1.6.43
+#   - libjpeg-turbo 2.1.5.1
+#   - fontconfig 2.13.1
 #   - Qt 4.7.4       (optional, for Qt GUI build)
 #
-# System packages required: build-essential, pkg-config, autoconf, libx11-dev,
-#   libxext-dev, libxrender-dev, libfontconfig1-dev, libfreetype6-dev,
-#   libjpeg-dev, libpng-dev, libssl-dev, zlib1g-dev, libgl1-mesa-dev,
-#   libglu1-mesa-dev, libxcb1-dev, libx11-xcb-dev, libxkbcommon-dev
+# Minimal system packages required: build-essential, pkg-config, autoconf, cmake,
+#   libx11-dev, libxext-dev, libxrender-dev, libfontconfig1-dev,
+#   libgl1-mesa-dev, libglu1-mesa-dev, libxcb1-dev, libx11-xcb-dev, libxkbcommon-dev
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -32,20 +36,19 @@ fi
 
 # Check for required tools
 echo "[*] Checking build tools..."
-for cmd in g++ make git wget pkg-config; do
+for cmd in g++ make git wget pkg-config cmake; do
     if ! command -v "$cmd" &> /dev/null; then
-        echo "ERROR: $cmd not found. Install build-essential, git, wget, pkg-config."
+        echo "ERROR: $cmd not found. Install build-essential, git, wget, pkg-config, cmake."
         exit 1
     fi
 done
 
-# Install system dependencies
+# Install minimal system dependencies
 echo "[*] Ensuring system dependencies..."
 sudo apt-get update -qq
 sudo apt-get install -y -qq \
-    build-essential pkg-config autoconf \
-    libx11-dev libxext-dev libxrender-dev libfontconfig1-dev \
-    libfreetype6-dev libjpeg-dev libpng-dev \
+    build-essential pkg-config autoconf cmake \
+    libx11-dev libxext-dev libxrender-dev \
     libgl1-mesa-dev libglu1-mesa-dev \
     libxcb1-dev libx11-xcb-dev libxkbcommon-dev
 
@@ -265,6 +268,211 @@ ZLIB_INCLUDE="$ZLIB_DIR/include"
 ZLIB_LIB="$ZLIB_DIR/lib"
 
 # ============================================================================
+# expat 2.5.0 (fontconfig dependency)
+# ============================================================================
+EXPAT_DIR="$DEPENDS/expat"
+if [ ! -f "$EXPAT_DIR/lib/libexpat.a" ]; then
+    echo ""
+    echo "[*] Building expat 2.5.0 (static)..."
+    mkdir -p "$DEPENDS"
+    cd "$DEPENDS"
+    
+    if [ ! -f expat-2.5.0.tar.gz ]; then
+        echo "    Downloading..."
+        wget -q https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.gz
+    fi
+    
+    echo "    Extracting..."
+    tar xzf expat-2.5.0.tar.gz
+    cd expat-2.5.0
+    
+    echo "    Configuring..."
+    ./configure \
+        --prefix="$EXPAT_DIR" \
+        --disable-shared \
+        --enable-static \
+        --with-pic
+    
+    echo "    Compiling..."
+    make -j$(nproc)
+    
+    echo "    Installing..."
+    make install
+    
+    cd "$DEPENDS"
+    echo "[+] expat 2.5.0 built successfully"
+else
+    echo "[+] Using cached expat build"
+fi
+EXPAT_INCLUDE="$EXPAT_DIR/include"
+EXPAT_LIB="$EXPAT_DIR/lib"
+
+# ============================================================================
+# FreeType 2.13.2
+# ============================================================================
+FREETYPE_DIR="$DEPENDS/freetype"
+if [ ! -f "$FREETYPE_DIR/lib/libfreetype.a" ]; then
+    echo ""
+    echo "[*] Building FreeType 2.13.2 (static)..."
+    mkdir -p "$DEPENDS"
+    cd "$DEPENDS"
+    
+    if [ ! -f freetype-2.13.2.tar.gz ]; then
+        echo "    Downloading..."
+        wget -q https://downloads.sourceforge.net/freetype/freetype-2.13.2.tar.gz
+    fi
+    
+    echo "    Extracting..."
+    tar xzf freetype-2.13.2.tar.gz
+    cd freetype-2.13.2
+    
+    echo "    Configuring..."
+    ./configure \
+        --prefix="$FREETYPE_DIR" \
+        --disable-shared \
+        --enable-static \
+        --with-pic \
+        --without-harfbuzz
+    
+    echo "    Compiling..."
+    make -j$(nproc)
+    
+    echo "    Installing..."
+    make install
+    
+    cd "$DEPENDS"
+    echo "[+] FreeType 2.13.2 built successfully"
+else
+    echo "[+] Using cached FreeType build"
+fi
+FREETYPE_INCLUDE="$FREETYPE_DIR/include"
+FREETYPE_LIB="$FREETYPE_DIR/lib"
+
+# ============================================================================
+# libpng 1.6.43
+# ============================================================================
+PNG_DIR="$DEPENDS/libpng"
+if [ ! -f "$PNG_DIR/lib/libpng.a" ]; then
+    echo ""
+    echo "[*] Building libpng 1.6.43 (static)..."
+    mkdir -p "$DEPENDS"
+    cd "$DEPENDS"
+    
+    if [ ! -f libpng-1.6.43.tar.gz ]; then
+        echo "    Downloading..."
+        wget -q https://downloads.sourceforge.net/libpng/libpng-1.6.43.tar.gz
+    fi
+    
+    echo "    Extracting..."
+    tar xzf libpng-1.6.43.tar.gz
+    cd libpng-1.6.43
+    
+    echo "    Configuring..."
+    ./configure \
+        --prefix="$PNG_DIR" \
+        --disable-shared \
+        --enable-static \
+        --with-pic
+    
+    echo "    Compiling..."
+    make -j$(nproc)
+    
+    echo "    Installing..."
+    make install
+    
+    cd "$DEPENDS"
+    echo "[+] libpng 1.6.43 built successfully"
+else
+    echo "[+] Using cached libpng build"
+fi
+PNG_INCLUDE="$PNG_DIR/include"
+PNG_LIB="$PNG_DIR/lib"
+
+# ============================================================================
+# libjpeg-turbo 2.1.5.1
+# ============================================================================
+JPEG_DIR="$DEPENDS/libjpeg-turbo"
+if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ]; then
+    echo ""
+    echo "[*] Building libjpeg-turbo 2.1.5.1 (static)..."
+    mkdir -p "$DEPENDS"
+    cd "$DEPENDS"
+    
+    if [ ! -f libjpeg-turbo-2.1.5.1.tar.gz ]; then
+        echo "    Downloading..."
+        wget -q https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/2.1.5.1/libjpeg-turbo-2.1.5.1.tar.gz
+    fi
+    
+    echo "    Extracting..."
+    tar xzf libjpeg-turbo-2.1.5.1.tar.gz
+    cd libjpeg-turbo-2.1.5.1
+    
+    echo "    Configuring..."
+    cmake -B build \
+        -DCMAKE_INSTALL_PREFIX="$JPEG_DIR" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DENABLE_SHARED=OFF \
+        -DENABLE_STATIC=ON
+    
+    echo "    Compiling..."
+    cmake --build build -j$(nproc)
+    
+    echo "    Installing..."
+    cmake --install build
+    
+    cd "$DEPENDS"
+    echo "[+] libjpeg-turbo 2.1.5.1 built successfully"
+else
+    echo "[+] Using cached libjpeg-turbo build"
+fi
+JPEG_INCLUDE="$JPEG_DIR/include"
+JPEG_LIB="$JPEG_DIR/lib"
+
+# ============================================================================
+# fontconfig 2.13.1
+# ============================================================================
+FONTCONFIG_DIR="$DEPENDS/fontconfig"
+if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
+    echo ""
+    echo "[*] Building fontconfig 2.13.1 (static)..."
+    mkdir -p "$DEPENDS"
+    cd "$DEPENDS"
+    
+    if [ ! -f fontconfig-2.13.1.tar.gz ]; then
+        echo "    Downloading..."
+        wget -q https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.13.1/fontconfig-2.13.1.tar.gz
+    fi
+    
+    echo "    Extracting..."
+    tar xzf fontconfig-2.13.1.tar.gz
+    cd fontconfig-2.13.1
+    
+    echo "    Configuring..."
+    PATH="$FREETYPE_DIR/bin:$PATH" \
+    PKG_CONFIG_PATH="$FREETYPE_DIR/lib/pkgconfig:$EXPAT_LIB/pkgconfig" \
+    ./configure \
+        --prefix="$FONTCONFIG_DIR" \
+        --disable-shared \
+        --enable-static \
+        --with-expat="$EXPAT_DIR" \
+        --with-freetype-config="$FREETYPE_DIR/bin/freetype-config" \
+        --disable-docs
+    
+    echo "    Compiling..."
+    make -j$(nproc)
+    
+    echo "    Installing..."
+    make install
+    
+    cd "$DEPENDS"
+    echo "[+] fontconfig 2.13.1 built successfully"
+else
+    echo "[+] Using cached fontconfig build"
+fi
+FONTCONFIG_INCLUDE="$FONTCONFIG_DIR/include"
+FONTCONFIG_LIB="$FONTCONFIG_DIR/lib"
+
+# ============================================================================
 # Summary
 # ============================================================================
 echo ""
@@ -274,6 +482,11 @@ echo "  Boost:       $BOOST_DIR"
 echo "  Berkeley DB: $BDB_DIR"
 echo "  PCRE:        $PCRE_DIR"
 echo "  zlib:        $ZLIB_DIR"
+echo "  expat:       $EXPAT_DIR"
+echo "  FreeType:    $FREETYPE_DIR"
+echo "  libpng:      $PNG_DIR"
+echo "  libjpeg:     $JPEG_DIR"
+echo "  fontconfig:  $FONTCONFIG_DIR"
 echo ""
 echo "All dependencies are built in: $DEPENDS/"
 echo ""
@@ -284,6 +497,10 @@ echo "  BDB_INCLUDE_PATH=$BDB_INCLUDE"
 echo "  BDB_LIB_PATH=$BDB_LIB"
 echo "  OPENSSL_INCLUDE_PATH=$OPENSSL_INCLUDE"
 echo "  OPENSSL_LIB_PATH=$OPENSSL_LIB"
+echo "  PCRE_INCLUDE_PATH=$PCRE_INCLUDE"
+echo "  PCRE_LIB_PATH=$PCRE_LIB"
+echo "  ZLIB_INCLUDE_PATH=$ZLIB_INCLUDE"
+echo "  ZLIB_LIB_PATH=$ZLIB_LIB"
 echo ""
 
 # ============================================================================
@@ -349,21 +566,24 @@ if [ "$BUILD_QT" = "1" ]; then
             -no-gif \
             -no-libtiff \
             -no-mng \
-            -system-zlib \
-            -system-libpng \
-            -system-libjpeg \
-            -fontconfig \
+            -no-opengl \
             -I"$ZLIB_INCLUDE" \
-            -I"$PCRE_INCLUDE" \
+            -I"$PNG_INCLUDE" \
+            -I"$JPEG_INCLUDE" \
+            -I"$FREETYPE_INCLUDE" \
+            -I"$FONTCONFIG_INCLUDE" \
             -L"$ZLIB_LIB" \
-            -L"$PCRE_LIB" \
+            -L"$PNG_LIB" \
+            -L"$JPEG_LIB" \
+            -L"$FREETYPE_LIB" \
+            -L"$FONTCONFIG_LIB" \
             -lz \
-            -lpcre \
+            -lpng16 \
+            -ljpeg \
+            -lfreetype \
+            -lfontconfig \
             -nomake examples \
-            -nomake demos \
-            -skip qt3support \
-            -skip qt3support \
-            -no-opengl
+            -nomake demos
         
         echo "    Compiling (this will take a while)..."
         make -j$(nproc)
