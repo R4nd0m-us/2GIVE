@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 # 2GiveCoin Fully Static Linux Build Script
 # Builds ALL dependencies from source into depends/ for fully static, portable binaries.
@@ -22,35 +21,61 @@ set -e
 #   libgl1-mesa-dev, libglu1-mesa-dev, libxcb1-dev, libx11-xcb-dev, libxkbcommon-dev
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR" || { echo "ERROR: Cannot cd to $SCRIPT_DIR"; exit 1; }
 
 echo "=== 2GiveCoin Fully Static Linux Build ==="
 echo "    Target: Debian 13 (x86_64)"
 echo ""
 
+# Error handling helper: reports the failing step and exits
+fail() {
+    echo "ERROR: $1"
+    echo "Build failed at step: $2"
+    exit 1
+}
+
+# Download with retry and clear error reporting
+download() {
+    local url="$1"
+    local out="$2"
+    local tries=3
+    local i=1
+    while [ $i -le $tries ]; do
+        echo "    Downloading (attempt $i/$tries): $url"
+        if wget -q --timeout=30 --tries=1 -O "$out" "$url"; then
+            echo "    [+] Download successful"
+            return 0
+        fi
+        i=$((i + 1))
+        sleep 2
+    done
+    fail "Failed to download $url after $tries attempts" "download"
+}
+
 # Fix CRLF line endings in genbuild.sh if present
 if [ -f share/genbuild.sh ] && grep -q $'\r' share/genbuild.sh; then
     echo "[*] Fixing line endings in share/genbuild.sh..."
-    sed -i 's/\r$//' share/genbuild.sh
+    sed -i 's/\r$//' share/genbuild.sh || fail "sed failed on share/genbuild.sh" "CRLF fix"
 fi
 
 # Check for required tools
 echo "[*] Checking build tools..."
 for cmd in g++ make git wget pkg-config cmake; do
     if ! command -v "$cmd" &> /dev/null; then
-        echo "ERROR: $cmd not found. Install build-essential, git, wget, pkg-config, cmake."
-        exit 1
+        fail "$cmd not found. Install build-essential, git, wget, pkg-config, cmake." "tool check"
     fi
 done
+echo "[+] All build tools found"
 
 # Install minimal system dependencies
 echo "[*] Ensuring system dependencies..."
-sudo apt-get update -qq
+sudo apt-get update -qq || fail "apt-get update failed" "system deps"
 sudo apt-get install -y -qq \
     build-essential pkg-config autoconf cmake \
     libx11-dev libxext-dev libxrender-dev \
     libgl1-mesa-dev libglu1-mesa-dev \
-    libxcb1-dev libx11-xcb-dev libxkbcommon-dev
+    libxcb1-dev libx11-xcb-dev libxkbcommon-dev || fail "apt-get install failed" "system deps"
+echo "[+] System dependencies installed"
 
 # Detect architecture
 echo ""
@@ -60,8 +85,7 @@ if [ "$ARCH" = "x86_64" ]; then
     HOST="x86_64-linux-gnu"
     HOST_TRIPLET="x86_64-unknown-linux-gnu"
 else
-    echo "ERROR: Only x86_64 is supported."
-    exit 1
+    fail "Only x86_64 is supported. Detected: $ARCH" "arch detect"
 fi
 echo "[+] Architecture: $ARCH ($HOST)"
 
@@ -75,30 +99,29 @@ OPENSSL_DIR="$DEPENDS/openssl"
 if [ ! -f "$OPENSSL_DIR/lib/libssl.a" ]; then
     echo ""
     echo "[*] Building OpenSSL 1.0.2u (static)..."
-    mkdir -p "$DEPENDS"
-    cd "$DEPENDS"
+    mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "OpenSSL prep"
+    cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "OpenSSL prep"
     
     if [ ! -f openssl-1.0.2u.tar.gz ]; then
-        echo "    Downloading..."
-        wget -q https://www.openssl.org/source/openssl-1.0.2u.tar.gz
+        download "https://www.openssl.org/source/openssl-1.0.2u.tar.gz" "openssl-1.0.2u.tar.gz"
     fi
     
     echo "    Extracting..."
-    tar xzf openssl-1.0.2u.tar.gz
-    cd openssl-1.0.2u
+    tar xzf openssl-1.0.2u.tar.gz || fail "tar failed for OpenSSL" "OpenSSL extract"
+    cd openssl-1.0.2u || fail "Cannot cd to openssl-1.0.2u" "OpenSSL extract"
     
     echo "    Configuring..."
     ./config no-shared no-async no-dso no-hw no-threads \
         --prefix="$OPENSSL_DIR" \
-        --openssldir="$OPENSSL_DIR/ssl"
+        --openssldir="$OPENSSL_DIR/ssl" || fail "./config failed for OpenSSL" "OpenSSL configure"
     
     echo "    Compiling..."
-    make -j$(nproc)
+    make -j$(nproc) || fail "make failed for OpenSSL" "OpenSSL compile"
     
     echo "    Installing..."
-    make install_sw
+    make install_sw || fail "make install failed for OpenSSL" "OpenSSL install"
     
-    cd "$DEPENDS"
+    cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "OpenSSL cleanup"
     echo "[+] OpenSSL 1.0.2u built successfully"
 else
     echo "[+] Using cached OpenSSL build"
@@ -113,32 +136,31 @@ BOOST_DIR="$DEPENDS/boost"
 if [ ! -f "$BOOST_DIR/stage/lib/libboost_system.a" ]; then
     echo ""
     echo "[*] Building Boost 1.53.0 (static)..."
-    mkdir -p "$DEPENDS"
-    cd "$DEPENDS"
+    mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "Boost prep"
+    cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "Boost prep"
     
     if [ ! -f boost_1_53_0.tar.gz ]; then
-        echo "    Downloading..."
-        wget -q https://sourceforge.net/projects/boost/files/boost/1.53.0/boost_1_53_0.tar.gz
+        download "https://sourceforge.net/projects/boost/files/boost/1.53.0/boost_1_53_0.tar.gz" "boost_1_53_0.tar.gz"
     fi
     
     echo "    Extracting..."
-    tar xzf boost_1_53_0.tar.gz
-    cd boost_1_53_0
+    tar xzf boost_1_53_0.tar.gz || fail "tar failed for Boost" "Boost extract"
+    cd boost_1_53_0 || fail "Cannot cd to boost_1_53_0" "Boost extract"
     
     echo "    Bootstrapping..."
-    ./bootstrap.sh
+    ./bootstrap.sh || fail "./bootstrap.sh failed for Boost" "Boost bootstrap"
     
     echo "    Compiling..."
     ./b2 link=static runtime-link=static threading=multi address-model=64 \
         --with-system --with-filesystem --with-program_options \
         --with-thread --with-chrono --with-date_time --with-atomic \
-        stage
+        stage || fail "b2 build failed for Boost" "Boost compile"
     
-    mkdir -p "$BOOST_DIR"
-    cp -r boost "$BOOST_DIR/"
-    cp -r stage "$BOOST_DIR/"
+    mkdir -p "$BOOST_DIR" || fail "Cannot mkdir $BOOST_DIR" "Boost install"
+    cp -r boost "$BOOST_DIR/" || fail "Cannot copy boost headers" "Boost install"
+    cp -r stage "$BOOST_DIR/" || fail "Cannot copy boost stage libs" "Boost install"
     
-    cd "$DEPENDS"
+    cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "Boost cleanup"
     echo "[+] Boost 1.53.0 built successfully"
 else
     echo "[+] Using cached Boost build"
@@ -153,17 +175,20 @@ BDB_DIR="$DEPENDS/db"
 if [ ! -f "$BDB_DIR/lib/libdb_cxx.a" ]; then
     echo ""
     echo "[*] Building Berkeley DB 5.3.28 (static)..."
-    mkdir -p "$DEPENDS"
-    cd "$DEPENDS"
+    mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "BDB prep"
+    cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "BDB prep"
     
     if [ ! -f db-5.3.28.tar.gz ]; then
-        echo "    Downloading..."
-        wget -q https://download.oracle.com/berkeley-db/db-5.3.28.tar.gz
+        echo "    Downloading Berkeley DB 5.3.28..."
+        # Try multiple mirrors since Oracle requires auth now
+        download "https://anduin.linuxfromscratch.org/BLFS/extras/berkeley-db/db-5.3.28.tar.gz" "db-5.3.28.tar.gz" || \
+        download "https://sourceforge.net/projects/boost-db/files/berkeley-db-5.3.28.tar.gz" "db-5.3.28.tar.gz" || \
+        fail "Failed to download Berkeley DB from all mirrors" "BDB download"
     fi
     
     echo "    Extracting..."
-    tar xzf db-5.3.28.tar.gz
-    cd db-5.3.28/build_unix
+    tar xzf db-5.3.28.tar.gz || fail "tar failed for Berkeley DB" "BDB extract"
+    cd db-5.3.28/build_unix || fail "Cannot cd to db-5.3.28/build_unix" "BDB extract"
     
     echo "    Configuring..."
     ../dist/configure \
@@ -171,15 +196,15 @@ if [ ! -f "$BDB_DIR/lib/libdb_cxx.a" ]; then
         --enable-cxx \
         --disable-shared \
         --enable-static \
-        --with-pic
+        --with-pic || fail "./configure failed for Berkeley DB" "BDB configure"
     
     echo "    Compiling..."
-    make -j$(nproc)
+    make -j$(nproc) || fail "make failed for Berkeley DB" "BDB compile"
     
     echo "    Installing..."
-    make install
+    make install || fail "make install failed for Berkeley DB" "BDB install"
     
-    cd "$DEPENDS"
+    cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "BDB cleanup"
     echo "[+] Berkeley DB 5.3.28 built successfully"
 else
     echo "[+] Using cached Berkeley DB build"
@@ -195,17 +220,16 @@ PCRE_DIR="$DEPENDS/pcre"
 if [ ! -f "$PCRE_DIR/lib/libpcre.a" ]; then
     echo ""
     echo "[*] Building PCRE 8.45 (static)..."
-    mkdir -p "$DEPENDS"
-    cd "$DEPENDS"
+    mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "PCRE prep"
+    cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "PCRE prep"
     
     if [ ! -f pcre-8.45.tar.gz ]; then
-        echo "    Downloading..."
-        wget -q https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz
+        download "https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz" "pcre-8.45.tar.gz"
     fi
     
     echo "    Extracting..."
-    tar xzf pcre-8.45.tar.gz
-    cd pcre-8.45
+    tar xzf pcre-8.45.tar.gz || fail "tar failed for PCRE" "PCRE extract"
+    cd pcre-8.45 || fail "Cannot cd to pcre-8.45" "PCRE extract"
     
     echo "    Configuring..."
     ./configure \
@@ -213,15 +237,15 @@ if [ ! -f "$PCRE_DIR/lib/libpcre.a" ]; then
         --disable-shared \
         --enable-static \
         --with-pic \
-        --disable-cpp
+        --disable-cpp || fail "./configure failed for PCRE" "PCRE configure"
     
     echo "    Compiling..."
-    make -j$(nproc)
+    make -j$(nproc) || fail "make failed for PCRE" "PCRE compile"
     
     echo "    Installing..."
-    make install
+    make install || fail "make install failed for PCRE" "PCRE install"
     
-    cd "$DEPENDS"
+    cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "PCRE cleanup"
     echo "[+] PCRE 8.45 built successfully"
 else
     echo "[+] Using cached PCRE build"
@@ -236,30 +260,29 @@ ZLIB_DIR="$DEPENDS/zlib"
 if [ ! -f "$ZLIB_DIR/lib/libz.a" ]; then
     echo ""
     echo "[*] Building zlib 1.2.13 (static)..."
-    mkdir -p "$DEPENDS"
-    cd "$DEPENDS"
+    mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "zlib prep"
+    cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "zlib prep"
     
     if [ ! -f zlib-1.2.13.tar.gz ]; then
-        echo "    Downloading..."
-        wget -q https://zlib.net/zlib-1.2.13.tar.gz
+        download "https://zlib.net/zlib-1.2.13.tar.gz" "zlib-1.2.13.tar.gz"
     fi
     
     echo "    Extracting..."
-    tar xzf zlib-1.2.13.tar.gz
-    cd zlib-1.2.13
+    tar xzf zlib-1.2.13.tar.gz || fail "tar failed for zlib" "zlib extract"
+    cd zlib-1.2.13 || fail "Cannot cd to zlib-1.2.13" "zlib extract"
     
     echo "    Configuring..."
     ./configure \
         --prefix="$ZLIB_DIR" \
-        --static
+        --static || fail "./configure failed for zlib" "zlib configure"
     
     echo "    Compiling..."
-    make -j$(nproc)
+    make -j$(nproc) || fail "make failed for zlib" "zlib compile"
     
     echo "    Installing..."
-    make install
+    make install || fail "make install failed for zlib" "zlib install"
     
-    cd "$DEPENDS"
+    cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "zlib cleanup"
     echo "[+] zlib 1.2.13 built successfully"
 else
     echo "[+] Using cached zlib build"
@@ -274,32 +297,31 @@ EXPAT_DIR="$DEPENDS/expat"
 if [ ! -f "$EXPAT_DIR/lib/libexpat.a" ]; then
     echo ""
     echo "[*] Building expat 2.5.0 (static)..."
-    mkdir -p "$DEPENDS"
-    cd "$DEPENDS"
+    mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "expat prep"
+    cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "expat prep"
     
     if [ ! -f expat-2.5.0.tar.gz ]; then
-        echo "    Downloading..."
-        wget -q https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.gz
+        download "https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.gz" "expat-2.5.0.tar.gz"
     fi
     
     echo "    Extracting..."
-    tar xzf expat-2.5.0.tar.gz
-    cd expat-2.5.0
+    tar xzf expat-2.5.0.tar.gz || fail "tar failed for expat" "expat extract"
+    cd expat-2.5.0 || fail "Cannot cd to expat-2.5.0" "expat extract"
     
     echo "    Configuring..."
     ./configure \
         --prefix="$EXPAT_DIR" \
         --disable-shared \
         --enable-static \
-        --with-pic
+        --with-pic || fail "./configure failed for expat" "expat configure"
     
     echo "    Compiling..."
-    make -j$(nproc)
+    make -j$(nproc) || fail "make failed for expat" "expat compile"
     
     echo "    Installing..."
-    make install
+    make install || fail "make install failed for expat" "expat install"
     
-    cd "$DEPENDS"
+    cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "expat cleanup"
     echo "[+] expat 2.5.0 built successfully"
 else
     echo "[+] Using cached expat build"
@@ -314,17 +336,16 @@ FREETYPE_DIR="$DEPENDS/freetype"
 if [ ! -f "$FREETYPE_DIR/lib/libfreetype.a" ]; then
     echo ""
     echo "[*] Building FreeType 2.13.2 (static)..."
-    mkdir -p "$DEPENDS"
-    cd "$DEPENDS"
+    mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "FreeType prep"
+    cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "FreeType prep"
     
     if [ ! -f freetype-2.13.2.tar.gz ]; then
-        echo "    Downloading..."
-        wget -q https://downloads.sourceforge.net/freetype/freetype-2.13.2.tar.gz
+        download "https://downloads.sourceforge.net/freetype/freetype-2.13.2.tar.gz" "freetype-2.13.2.tar.gz"
     fi
     
     echo "    Extracting..."
-    tar xzf freetype-2.13.2.tar.gz
-    cd freetype-2.13.2
+    tar xzf freetype-2.13.2.tar.gz || fail "tar failed for FreeType" "FreeType extract"
+    cd freetype-2.13.2 || fail "Cannot cd to freetype-2.13.2" "FreeType extract"
     
     echo "    Configuring..."
     ./configure \
@@ -332,15 +353,15 @@ if [ ! -f "$FREETYPE_DIR/lib/libfreetype.a" ]; then
         --disable-shared \
         --enable-static \
         --with-pic \
-        --without-harfbuzz
+        --without-harfbuzz || fail "./configure failed for FreeType" "FreeType configure"
     
     echo "    Compiling..."
-    make -j$(nproc)
+    make -j$(nproc) || fail "make failed for FreeType" "FreeType compile"
     
     echo "    Installing..."
-    make install
+    make install || fail "make install failed for FreeType" "FreeType install"
     
-    cd "$DEPENDS"
+    cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "FreeType cleanup"
     echo "[+] FreeType 2.13.2 built successfully"
 else
     echo "[+] Using cached FreeType build"
@@ -355,32 +376,31 @@ PNG_DIR="$DEPENDS/libpng"
 if [ ! -f "$PNG_DIR/lib/libpng.a" ]; then
     echo ""
     echo "[*] Building libpng 1.6.43 (static)..."
-    mkdir -p "$DEPENDS"
-    cd "$DEPENDS"
+    mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "libpng prep"
+    cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "libpng prep"
     
     if [ ! -f libpng-1.6.43.tar.gz ]; then
-        echo "    Downloading..."
-        wget -q https://downloads.sourceforge.net/libpng/libpng-1.6.43.tar.gz
+        download "https://downloads.sourceforge.net/libpng/libpng-1.6.43.tar.gz" "libpng-1.6.43.tar.gz"
     fi
     
     echo "    Extracting..."
-    tar xzf libpng-1.6.43.tar.gz
-    cd libpng-1.6.43
+    tar xzf libpng-1.6.43.tar.gz || fail "tar failed for libpng" "libpng extract"
+    cd libpng-1.6.43 || fail "Cannot cd to libpng-1.6.43" "libpng extract"
     
     echo "    Configuring..."
     ./configure \
         --prefix="$PNG_DIR" \
         --disable-shared \
         --enable-static \
-        --with-pic
+        --with-pic || fail "./configure failed for libpng" "libpng configure"
     
     echo "    Compiling..."
-    make -j$(nproc)
+    make -j$(nproc) || fail "make failed for libpng" "libpng compile"
     
     echo "    Installing..."
-    make install
+    make install || fail "make install failed for libpng" "libpng install"
     
-    cd "$DEPENDS"
+    cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "libpng cleanup"
     echo "[+] libpng 1.6.43 built successfully"
 else
     echo "[+] Using cached libpng build"
@@ -395,32 +415,31 @@ JPEG_DIR="$DEPENDS/libjpeg-turbo"
 if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ]; then
     echo ""
     echo "[*] Building libjpeg-turbo 2.1.5.1 (static)..."
-    mkdir -p "$DEPENDS"
-    cd "$DEPENDS"
+    mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "libjpeg prep"
+    cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "libjpeg prep"
     
     if [ ! -f libjpeg-turbo-2.1.5.1.tar.gz ]; then
-        echo "    Downloading..."
-        wget -q https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/2.1.5.1/libjpeg-turbo-2.1.5.1.tar.gz
+        download "https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/2.1.5.1/libjpeg-turbo-2.1.5.1.tar.gz" "libjpeg-turbo-2.1.5.1.tar.gz"
     fi
     
     echo "    Extracting..."
-    tar xzf libjpeg-turbo-2.1.5.1.tar.gz
-    cd libjpeg-turbo-2.1.5.1
+    tar xzf libjpeg-turbo-2.1.5.1.tar.gz || fail "tar failed for libjpeg-turbo" "libjpeg extract"
+    cd libjpeg-turbo-2.1.5.1 || fail "Cannot cd to libjpeg-turbo-2.1.5.1" "libjpeg extract"
     
     echo "    Configuring..."
     cmake -B build \
         -DCMAKE_INSTALL_PREFIX="$JPEG_DIR" \
         -DCMAKE_BUILD_TYPE=Release \
         -DENABLE_SHARED=OFF \
-        -DENABLE_STATIC=ON
+        -DENABLE_STATIC=ON || fail "cmake configure failed for libjpeg-turbo" "libjpeg configure"
     
     echo "    Compiling..."
-    cmake --build build -j$(nproc)
+    cmake --build build -j$(nproc) || fail "cmake build failed for libjpeg-turbo" "libjpeg compile"
     
     echo "    Installing..."
-    cmake --install build
+    cmake --install build || fail "cmake install failed for libjpeg-turbo" "libjpeg install"
     
-    cd "$DEPENDS"
+    cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "libjpeg cleanup"
     echo "[+] libjpeg-turbo 2.1.5.1 built successfully"
 else
     echo "[+] Using cached libjpeg-turbo build"
@@ -435,17 +454,16 @@ FONTCONFIG_DIR="$DEPENDS/fontconfig"
 if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
     echo ""
     echo "[*] Building fontconfig 2.13.1 (static)..."
-    mkdir -p "$DEPENDS"
-    cd "$DEPENDS"
+    mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "fontconfig prep"
+    cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "fontconfig prep"
     
     if [ ! -f fontconfig-2.13.1.tar.gz ]; then
-        echo "    Downloading..."
-        wget -q https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.13.1/fontconfig-2.13.1.tar.gz
+        download "https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.13.1/fontconfig-2.13.1.tar.gz" "fontconfig-2.13.1.tar.gz"
     fi
     
     echo "    Extracting..."
-    tar xzf fontconfig-2.13.1.tar.gz
-    cd fontconfig-2.13.1
+    tar xzf fontconfig-2.13.1.tar.gz || fail "tar failed for fontconfig" "fontconfig extract"
+    cd fontconfig-2.13.1 || fail "Cannot cd to fontconfig-2.13.1" "fontconfig extract"
     
     echo "    Configuring..."
     PATH="$FREETYPE_DIR/bin:$PATH" \
@@ -456,21 +474,48 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
         --enable-static \
         --with-expat="$EXPAT_DIR" \
         --with-freetype-config="$FREETYPE_DIR/bin/freetype-config" \
-        --disable-docs
+        --disable-docs || fail "./configure failed for fontconfig" "fontconfig configure"
     
     echo "    Compiling..."
-    make -j$(nproc)
+    make -j$(nproc) || fail "make failed for fontconfig" "fontconfig compile"
     
     echo "    Installing..."
-    make install
+    make install || fail "make install failed for fontconfig" "fontconfig install"
     
-    cd "$DEPENDS"
+    cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "fontconfig cleanup"
     echo "[+] fontconfig 2.13.1 built successfully"
 else
     echo "[+] Using cached fontconfig build"
 fi
 FONTCONFIG_INCLUDE="$FONTCONFIG_DIR/include"
 FONTCONFIG_LIB="$FONTCONFIG_DIR/lib"
+
+# ============================================================================
+# Verify all dependencies are present
+# ============================================================================
+echo ""
+echo "[*] Verifying all dependencies were built..."
+missing=0
+for lib in "$OPENSSL_DIR/lib/libssl.a" \
+          "$BOOST_DIR/stage/lib/libboost_system.a" \
+          "$BDB_DIR/lib/libdb_cxx.a" \
+          "$PCRE_DIR/lib/libpcre.a" \
+          "$ZLIB_DIR/lib/libz.a" \
+          "$EXPAT_DIR/lib/libexpat.a" \
+          "$FREETYPE_DIR/lib/libfreetype.a" \
+          "$PNG_DIR/lib/libpng.a" \
+          "$JPEG_DIR/lib/libjpeg.a" \
+          "$FONTCONFIG_DIR/lib/libfontconfig.a"; do
+    if [ ! -f "$lib" ]; then
+        echo "    MISSING: $lib"
+        missing=$((missing + 1))
+    fi
+done
+
+if [ $missing -gt 0 ]; then
+    fail "$missing dependencies are missing after build" "verification"
+fi
+echo "[+] All $missing dependencies verified (0 missing)"
 
 # ============================================================================
 # Summary
@@ -512,21 +557,20 @@ if [ "$BUILD_QT" = "1" ]; then
     if [ ! -f "$QT_DIR/lib/libQtCore.a" ]; then
         echo ""
         echo "[*] Building Qt 4.7.4 (static)..."
-        mkdir -p "$DEPENDS"
-        cd "$DEPENDS"
+        mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "Qt prep"
+        cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "Qt prep"
         
         if [ ! -f qt-everywhere-opensource-src-4.7.4.tar.gz ]; then
-            echo "    Downloading..."
-            wget -q https://download.qt.io/archive/qt/4.7/qt-everywhere-opensource-src-4.7.4.tar.gz
+            download "https://download.qt.io/archive/qt/4.7/qt-everywhere-opensource-src-4.7.4.tar.gz" "qt-everywhere-opensource-src-4.7.4.tar.gz"
         fi
         
         echo "    Extracting..."
-        tar xzf qt-everywhere-opensource-src-4.7.4.tar.gz
-        mv qt-everywhere-opensource-src-4.7.4 qt-4.7.4
-        cd qt-4.7.4
+        tar xzf qt-everywhere-opensource-src-4.7.4.tar.gz || fail "tar failed for Qt" "Qt extract"
+        mv qt-everywhere-opensource-src-4.7.4 qt-4.7.4 || fail "Cannot rename Qt dir" "Qt extract"
+        cd qt-4.7.4 || fail "Cannot cd to qt-4.7.4" "Qt extract"
         
         echo "    Configuring..."
-        chmod +x configure
+        chmod +x configure || fail "Cannot chmod configure" "Qt configure"
         ./configure \
             -prefix "$QT_DIR" \
             -static \
@@ -583,15 +627,15 @@ if [ "$BUILD_QT" = "1" ]; then
             -lfreetype \
             -lfontconfig \
             -nomake examples \
-            -nomake demos
+            -nomake demos || fail "./configure failed for Qt" "Qt configure"
         
         echo "    Compiling (this will take a while)..."
-        make -j$(nproc)
+        make -j$(nproc) || fail "make failed for Qt" "Qt compile"
         
         echo "    Installing..."
-        make install
+        make install || fail "make install failed for Qt" "Qt install"
         
-        cd "$DEPENDS"
+        cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "Qt cleanup"
         echo "[+] Qt 4.7.4 built successfully"
     else
         echo "[+] Using cached Qt build"
@@ -611,10 +655,10 @@ fi
 # ============================================================================
 echo ""
 echo "[*] Building 2GiveCoind and 2GiveCoin-cli (fully static)..."
-cd src
+cd src || fail "Cannot cd to src" "project build"
 
 # Clean previous build
-make -f makefile.unix clean
+make -f makefile.unix clean || fail "make clean failed" "project build"
 
 # Build with static linking against all depends/ libraries
 make -f makefile.unix \
@@ -634,7 +678,7 @@ make -f makefile.unix \
     BDB_LIB_SUFFIX="$BDB_LIB_SUFFIX" \
     DEBUGFLAGS="-g" \
     CXXFLAGS="-std=gnu++11" \
-    all
+    all || fail "make failed for 2GiveCoin" "project build"
 
 cd ..
 
