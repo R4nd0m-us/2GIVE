@@ -152,8 +152,11 @@ if [ ! -f "$BOOST_DIR/stage/lib/libboost_system.a" ]; then
     
     echo "    Compiling..."
     ./b2 link=static runtime-link=static threading=multi address-model=64 \
+        threadapi=pthread \
+        cxxflags="-pthread" linkflags="-pthread" \
         --with-system --with-filesystem --with-program_options \
         --with-thread --with-chrono --with-date_time --with-atomic \
+        -j1 \
         stage || fail "b2 build failed for Boost" "Boost compile"
     
     mkdir -p "$BOOST_DIR" || fail "Cannot mkdir $BOOST_DIR" "Boost install"
