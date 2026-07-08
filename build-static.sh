@@ -431,6 +431,7 @@ if [ ! -f "$FREETYPE_DIR/lib/libfreetype.a" ]; then
     cd freetype-2.13.2 || fail "Cannot cd to freetype-2.13.2" "FreeType extract"
     
     echo "    Configuring..."
+    CPPFLAGS="-I$ZLIB_INCLUDE -I$FREETYPE_INCLUDE" LDFLAGS="-L$ZLIB_LIB -L$FREETYPE_LIB" \
     ./configure \
         --prefix="$FREETYPE_DIR" \
         --disable-shared \
@@ -474,11 +475,13 @@ if [ ! -f "$PNG_DIR/lib/libpng.a" ]; then
     cd libpng-1.6.43 || fail "Cannot cd to libpng-1.6.43" "libpng extract"
     
     echo "    Configuring..."
+    CPPFLAGS="-I$ZLIB_INCLUDE" LDFLAGS="-L$ZLIB_LIB" \
     ./configure \
         --prefix="$PNG_DIR" \
         --disable-shared \
         --enable-static \
-        --with-pic || fail "./configure failed for libpng" "libpng configure"
+        --with-pic \
+        --with-zlib="$ZLIB_DIR" || fail "./configure failed for libpng" "libpng configure"
     
     echo "    Compiling..."
     make -j$(nproc) || fail "make failed for libpng" "libpng compile"
@@ -560,6 +563,8 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
     echo "    Configuring..."
     PATH="$FREETYPE_DIR/bin:$PATH" \
     PKG_CONFIG_PATH="$FREETYPE_DIR/lib/pkgconfig:$EXPAT_LIB/pkgconfig" \
+    CPPFLAGS="-I$ZLIB_INCLUDE -I$FREETYPE_INCLUDE -I$EXPAT_INCLUDE" \
+    LDFLAGS="-L$ZLIB_LIB -L$FREETYPE_LIB -L$EXPAT_LIB" \
     ./configure \
         --prefix="$FONTCONFIG_DIR" \
         --disable-shared \
