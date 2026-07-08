@@ -437,7 +437,8 @@ if [ ! -f "$FREETYPE_DIR/lib/libfreetype.a" ]; then
     
     echo "    Configuring..."
     CC=gcc CXX=g++ \
-    cmake -B build \
+    mkdir -p build && cd build && \
+    cmake .. \
         -DCMAKE_INSTALL_PREFIX="$FREETYPE_DIR" \
         -DCMAKE_BUILD_TYPE=Release \
         -DBUILD_SHARED_LIBS=OFF \
@@ -448,10 +449,10 @@ if [ ! -f "$FREETYPE_DIR/lib/libfreetype.a" ]; then
         -DZLIB_LIBRARY="$ZLIB_LIB/libz.a" || fail "cmake configure failed for FreeType" "FreeType configure"
     
     echo "    Compiling..."
-    cmake --build build -j$(nproc) || fail "cmake build failed for FreeType" "FreeType compile"
+    cmake --build . -j$(nproc) || fail "cmake build failed for FreeType" "FreeType compile"
     
     echo "    Installing..."
-    cmake --install build || fail "cmake install failed for FreeType" "FreeType install"
+    cmake --install . || fail "cmake install failed for FreeType" "FreeType install"
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "FreeType cleanup"
     echo "[+] FreeType 2.13.2 built successfully"
@@ -528,17 +529,18 @@ if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ]; then
     cd libjpeg-turbo-2.1.5.1 || fail "Cannot cd to libjpeg-turbo-2.1.5.1" "libjpeg extract"
     
     echo "    Configuring..."
-    cmake -B build \
+    mkdir -p build && cd build && \
+    cmake .. \
         -DCMAKE_INSTALL_PREFIX="$JPEG_DIR" \
         -DCMAKE_BUILD_TYPE=Release \
         -DENABLE_SHARED=OFF \
         -DENABLE_STATIC=ON || fail "cmake configure failed for libjpeg-turbo" "libjpeg configure"
     
     echo "    Compiling..."
-    cmake --build build -j$(nproc) || fail "cmake build failed for libjpeg-turbo" "libjpeg compile"
+    cmake --build . -j$(nproc) || fail "cmake build failed for libjpeg-turbo" "libjpeg compile"
     
     echo "    Installing..."
-    cmake --install build || fail "cmake install failed for libjpeg-turbo" "libjpeg install"
+    cmake --install . || fail "cmake install failed for libjpeg-turbo" "libjpeg install"
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "libjpeg cleanup"
     echo "[+] libjpeg-turbo 2.1.5.1 built successfully"
