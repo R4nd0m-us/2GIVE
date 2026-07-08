@@ -114,7 +114,8 @@ sudo apt-get install -y -qq \
     build-essential pkg-config autoconf cmake \
     libx11-dev libxext-dev libxrender-dev \
     libgl1-mesa-dev libglu1-mesa-dev \
-    libxcb1-dev libx11-xcb-dev libxkbcommon-dev || fail "apt-get install failed" "system deps"
+    libxcb1-dev libx11-xcb-dev libxkbcommon-dev \
+    uuid-dev || fail "apt-get install failed" "system deps"
 echo "[+] System dependencies installed"
 
 # Detect architecture
