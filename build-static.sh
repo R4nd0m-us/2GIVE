@@ -249,7 +249,7 @@ if [ ! -f "$BDB_DIR/lib/libdb_cxx.a" ]; then
     if [ ! -f db-5.3.28.tar.gz ] || ! validate_tarball db-5.3.28.tar.gz "Berkeley DB"; then
         echo "    Downloading Berkeley DB 5.3.28..."
         # Try multiple mirrors since Oracle requires auth now
-        download "https://anduin.linuxfromscratch.org/BLFS/bdb/db-5.3.28.tar.gz" "db-5.3.28.tar.gz" || \
+        download "https://github.com/berkeleydb/libdb/releases/download/v5.3.28/db-5.3.28.tar.gz" "db-5.3.28.tar.gz" || \
         download "https://sourceforge.net/projects/boost-db/files/berkeley-db-5.3.28.tar.gz" "db-5.3.28.tar.gz" || \
         fail "Failed to download Berkeley DB from all mirrors. Manually download db-5.3.28.tar.gz and place in depends/ directory." "BDB download"
     fi
