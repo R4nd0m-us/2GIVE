@@ -78,7 +78,7 @@ fi
 # Check for required tools
 echo "[*] Checking build tools..."
 missing_tools=""
-for cmd in g++ make git wget pkg-config cmake; do
+for cmd in g++ make git wget pkg-config cmake gperf; do
     if ! command -v "$cmd" &> /dev/null; then
         missing_tools="$missing_tools $cmd"
     fi
@@ -89,7 +89,7 @@ if [ -n "$missing_tools" ]; then
     echo "[*] Installing system dependencies..."
     sudo apt-get update -qq || fail "apt-get update failed" "system deps"
     sudo apt-get install -y -qq \
-        build-essential pkg-config autoconf cmake \
+        build-essential pkg-config autoconf cmake gperf \
         libx11-dev libxext-dev libxrender-dev \
         libgl1-mesa-dev libglu1-mesa-dev \
         libxcb1-dev libx11-xcb-dev libxkbcommon-dev || fail "apt-get install failed" "system deps"
@@ -97,7 +97,7 @@ if [ -n "$missing_tools" ]; then
     
     # Re-check tools
     echo "[*] Re-checking build tools..."
-    for cmd in g++ make git wget pkg-config cmake; do
+    for cmd in g++ make git wget pkg-config cmake gperf; do
         if ! command -v "$cmd" &> /dev/null; then
             fail "$cmd still not found after installing build-essential" "tool check"
         fi
