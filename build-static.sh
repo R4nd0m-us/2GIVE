@@ -24,7 +24,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR" || { echo "ERROR: Cannot cd to $SCRIPT_DIR"; exit 1; }
 
 echo "=== 2GiveCoin Fully Static Linux Build ==="
-echo "    Target: Debian 13 (x86_64)"
+echo "    Target: Ubuntu 18.04.6 (x86_64)"
 echo ""
 
 # Error handling helper: reports the failing step and exits
