@@ -437,19 +437,21 @@ if [ ! -f "$FREETYPE_DIR/lib/libfreetype.a" ]; then
     
     echo "    Configuring..."
     CC=gcc CXX=g++ \
-    CPPFLAGS="-I$ZLIB_INCLUDE -I$FREETYPE_INCLUDE" LDFLAGS="-L$ZLIB_LIB -L$FREETYPE_LIB" \
-    ./configure \
-        --prefix="$FREETYPE_DIR" \
-        --disable-shared \
-        --enable-static \
-        --with-pic \
-        --without-harfbuzz || fail "./configure failed for FreeType" "FreeType configure"
+    cmake -B build \
+        -DCMAKE_INSTALL_PREFIX="$FREETYPE_DIR" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DCMAKE_C_FLAGS="-O2 -msse2 -pthread -fPIC" \
+        -DCMAKE_EXE_LINKER_FLAGS="-static" \
+        -DZLIB_ROOT="$ZLIB_DIR" \
+        -DZLIB_INCLUDE_DIR="$ZLIB_INCLUDE" \
+        -DZLIB_LIBRARY="$ZLIB_LIB/libz.a" || fail "cmake configure failed for FreeType" "FreeType configure"
     
     echo "    Compiling..."
-    make -j$(nproc) || fail "make failed for FreeType" "FreeType compile"
+    cmake --build build -j$(nproc) || fail "cmake build failed for FreeType" "FreeType compile"
     
     echo "    Installing..."
-    make install || fail "make install failed for FreeType" "FreeType install"
+    cmake --install build || fail "cmake install failed for FreeType" "FreeType install"
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "FreeType cleanup"
     echo "[+] FreeType 2.13.2 built successfully"
