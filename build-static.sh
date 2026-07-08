@@ -158,6 +158,7 @@ if [ ! -f "$OPENSSL_DIR/lib/libssl.a" ]; then
     cd openssl-1.0.2u || fail "Cannot cd to openssl-1.0.2u" "OpenSSL extract"
     
     echo "    Configuring..."
+    CC=gcc CXX=g++ \
     ./config no-shared no-async no-dso no-hw no-threads \
         --prefix="$OPENSSL_DIR" \
         --openssldir="$OPENSSL_DIR/ssl" || fail "./config failed for OpenSSL" "OpenSSL configure"
@@ -262,6 +263,7 @@ if [ ! -f "$BDB_DIR/lib/libdb_cxx.a" ]; then
     cd db-5.3.28/build_unix || fail "Cannot cd to db-5.3.28/build_unix" "BDB extract"
     
     echo "    Configuring..."
+    CC=gcc CXX=g++ \
     ../dist/configure \
         --prefix="$BDB_DIR" \
         --enable-cxx \
@@ -306,6 +308,7 @@ if [ ! -f "$PCRE_DIR/lib/libpcre.a" ]; then
     cd pcre-8.45 || fail "Cannot cd to pcre-8.45" "PCRE extract"
     
     echo "    Configuring..."
+    CC=gcc CXX=g++ \
     ./configure \
         --prefix="$PCRE_DIR" \
         --disable-shared \
@@ -349,6 +352,7 @@ if [ ! -f "$ZLIB_DIR/lib/libz.a" ]; then
     cd zlib-1.2.13 || fail "Cannot cd to zlib-1.2.13" "zlib extract"
     
     echo "    Configuring..."
+    CC=gcc CXX=g++ \
     ./configure \
         --prefix="$ZLIB_DIR" \
         --static || fail "./configure failed for zlib" "zlib configure"
@@ -389,6 +393,7 @@ if [ ! -f "$EXPAT_DIR/lib/libexpat.a" ]; then
     cd expat-2.5.0 || fail "Cannot cd to expat-2.5.0" "expat extract"
     
     echo "    Configuring..."
+    CC=gcc CXX=g++ \
     ./configure \
         --prefix="$EXPAT_DIR" \
         --disable-shared \
@@ -431,6 +436,7 @@ if [ ! -f "$FREETYPE_DIR/lib/libfreetype.a" ]; then
     cd freetype-2.13.2 || fail "Cannot cd to freetype-2.13.2" "FreeType extract"
     
     echo "    Configuring..."
+    CC=gcc CXX=g++ \
     CPPFLAGS="-I$ZLIB_INCLUDE -I$FREETYPE_INCLUDE" LDFLAGS="-L$ZLIB_LIB -L$FREETYPE_LIB" \
     ./configure \
         --prefix="$FREETYPE_DIR" \
@@ -475,6 +481,7 @@ if [ ! -f "$PNG_DIR/lib/libpng.a" ]; then
     cd libpng-1.6.43 || fail "Cannot cd to libpng-1.6.43" "libpng extract"
     
     echo "    Configuring..."
+    CC=gcc CXX=g++ \
     CPPFLAGS="-I$ZLIB_INCLUDE" LDFLAGS="-L$ZLIB_LIB" \
     ./configure \
         --prefix="$PNG_DIR" \
@@ -561,6 +568,7 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
     cd fontconfig-2.13.1 || fail "Cannot cd to fontconfig-2.13.1" "fontconfig extract"
     
     echo "    Configuring..."
+    CC=gcc CXX=g++ \
     PATH="$FREETYPE_DIR/bin:$PATH" \
     PKG_CONFIG_PATH="$FREETYPE_DIR/lib/pkgconfig:$EXPAT_LIB/pkgconfig" \
     CPPFLAGS="-I$ZLIB_INCLUDE -I$FREETYPE_INCLUDE -I$EXPAT_INCLUDE" \
