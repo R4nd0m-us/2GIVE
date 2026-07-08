@@ -43,8 +43,14 @@ download() {
     while [ $i -le $tries ]; do
         echo "    Downloading (attempt $i/$tries): $url"
         if wget -q --timeout=30 --tries=1 -O "$out" "$url"; then
-            echo "    [+] Download successful"
-            return 0
+            # Verify it's actually a gzip/archive, not an HTML error page
+            if file "$out" | grep -q 'gzip\|Zip\|tar\|compress'; then
+                echo "    [+] Download successful"
+                return 0
+            else
+                echo "    [!] Downloaded file is not a valid archive (likely HTML error page)"
+                rm -f "$out"
+            fi
         fi
         i=$((i + 1))
         sleep 2
