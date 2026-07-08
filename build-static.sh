@@ -561,7 +561,9 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
     cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "fontconfig prep"
     
     if [ ! -f fontconfig-2.13.1.tar.gz ]; then
-        download "https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.13.1/fontconfig-2.13.1.tar.gz" "fontconfig-2.13.1.tar.gz"
+        download "https://www.freedesktop.org/software/fontconfig/release/fontconfig-2.13.1.tar.gz" "fontconfig-2.13.1.tar.gz" || \
+        download "https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.13.1/fontconfig-2.13.1.tar.gz" "fontconfig-2.13.1.tar.gz" || \
+        fail "Failed to download fontconfig from all mirrors" "fontconfig download"
     fi
     
     echo "    Validating tarball..."
@@ -570,6 +572,12 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
     echo "    Extracting..."
     tar xzf fontconfig-2.13.1.tar.gz || fail "tar failed for fontconfig" "fontconfig extract"
     cd fontconfig-2.13.1 || fail "Cannot cd to fontconfig-2.13.1" "fontconfig extract"
+    
+    echo "    Preparing build system..."
+    if [ ! -f configure ]; then
+        echo "    No configure script found, running autoreconf..."
+        autoreconf -fi || fail "autoreconf failed for fontconfig" "fontconfig autotools"
+    fi
     
     echo "    Configuring..."
     CC=gcc CXX=g++ \
