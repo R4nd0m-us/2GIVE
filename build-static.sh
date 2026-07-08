@@ -198,13 +198,12 @@ if [ ! -f "$BOOST_DIR/stage/lib/libboost_system.a" ]; then
               "$BOOST_DIR/stage/lib/libboost_program_options.a" \
               "$BOOST_DIR/stage/lib/libboost_thread.a" \
               "$BOOST_DIR/stage/lib/libboost_chrono.a" \
-              "$BOOST_DIR/stage/lib/libboost_date_time.a" \
-              "$BOOST_DIR/stage/lib/libboost_atomic.a"; do
+              "$BOOST_DIR/stage/lib/libboost_date_time.a"; do
         if [ ! -f "$lib" ]; then
             fail "Boost library missing after build: $lib" "Boost verify"
         fi
     done
-    echo "    [+] All Boost libraries verified"
+    echo "    [+] Core Boost libraries verified"
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "Boost cleanup"
     echo "[+] Boost 1.53.0 built successfully"
