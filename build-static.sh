@@ -338,7 +338,7 @@ if [ ! -f "$ZLIB_DIR/lib/libz.a" ]; then
     cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "zlib prep"
     
     if [ ! -f zlib-1.2.13.tar.gz ]; then
-        download "https://zlib.net/zlib-1.2.13.tar.gz" "zlib-1.2.13.tar.gz"
+        download "https://github.com/madler/zlib/releases/download/v1.2.13/zlib-1.2.13.tar.gz" "zlib-1.2.13.tar.gz"
     fi
     
     echo "    Validating tarball..."
