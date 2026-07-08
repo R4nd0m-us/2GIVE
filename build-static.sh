@@ -449,7 +449,7 @@ if [ ! -f "$FREETYPE_DIR/lib/libfreetype.a" ]; then
         -DZLIB_LIBRARY="$ZLIB_LIB/libz.a" || fail "cmake configure failed for FreeType" "FreeType configure"
     
     echo "    Compiling..."
-    cmake --build . -j$(nproc) || fail "cmake build failed for FreeType" "FreeType compile"
+    cmake --build . -- -j$(nproc) || fail "cmake build failed for FreeType" "FreeType compile"
     
     echo "    Installing..."
     cmake --install . || fail "cmake install failed for FreeType" "FreeType install"
@@ -537,7 +537,7 @@ if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ]; then
         -DENABLE_STATIC=ON || fail "cmake configure failed for libjpeg-turbo" "libjpeg configure"
     
     echo "    Compiling..."
-    cmake --build . -j$(nproc) || fail "cmake build failed for libjpeg-turbo" "libjpeg compile"
+    cmake --build . -- -j$(nproc) || fail "cmake build failed for libjpeg-turbo" "libjpeg compile"
     
     echo "    Installing..."
     cmake --install . || fail "cmake install failed for libjpeg-turbo" "libjpeg install"
