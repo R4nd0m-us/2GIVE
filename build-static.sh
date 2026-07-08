@@ -585,6 +585,8 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
     PKG_CONFIG_PATH="$FREETYPE_DIR/lib/pkgconfig:$EXPAT_LIB/pkgconfig" \
     CPPFLAGS="-I$ZLIB_INCLUDE -I$FREETYPE_INCLUDE -I$EXPAT_INCLUDE" \
     LDFLAGS="-L$ZLIB_LIB -L$FREETYPE_LIB -L$EXPAT_LIB" \
+    FREETYPE_CFLAGS="-I$FREETYPE_INCLUDE" \
+    FREETYPE_LIBS="-L$FREETYPE_LIB -lfreetype" \
     ./configure \
         --prefix="$FONTCONFIG_DIR" \
         --disable-shared \
