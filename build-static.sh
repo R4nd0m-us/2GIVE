@@ -34,6 +34,21 @@ fail() {
     exit 1
 }
 
+# Validate a tarball is actually a gzip archive, not HTML/corrupt
+validate_tarball() {
+    local file="$1"
+    local name="$2"
+    if [ ! -f "$file" ]; then
+        fail "$name tarball not found: $file" "tarball check"
+    fi
+    if ! file "$file" | grep -q 'gzip\|Zip\|tar\|compress'; then
+        echo "    [!] $name tarball appears corrupt (not a valid archive). Removing and re-downloading..."
+        rm -f "$file"
+        return 1
+    fi
+    return 0
+}
+
 # Download with retry and clear error reporting
 download() {
     local url="$1"
@@ -43,13 +58,9 @@ download() {
     while [ $i -le $tries ]; do
         echo "    Downloading (attempt $i/$tries): $url"
         if wget -q --timeout=30 --tries=1 -O "$out" "$url"; then
-            # Verify it's actually a gzip/archive, not an HTML error page
-            if file "$out" | grep -q 'gzip\|Zip\|tar\|compress'; then
+            if validate_tarball "$out" "$(basename "$out")"; then
                 echo "    [+] Download successful"
                 return 0
-            else
-                echo "    [!] Downloaded file is not a valid archive (likely HTML error page)"
-                rm -f "$out"
             fi
         fi
         i=$((i + 1))
@@ -139,6 +150,9 @@ if [ ! -f "$OPENSSL_DIR/lib/libssl.a" ]; then
         download "https://www.openssl.org/source/openssl-1.0.2u.tar.gz" "openssl-1.0.2u.tar.gz"
     fi
     
+    echo "    Validating tarball..."
+    validate_tarball openssl-1.0.2u.tar.gz "OpenSSL" || fail "OpenSSL tarball is corrupt" "OpenSSL validation"
+    
     echo "    Extracting..."
     tar xzf openssl-1.0.2u.tar.gz || fail "tar failed for OpenSSL" "OpenSSL extract"
     cd openssl-1.0.2u || fail "Cannot cd to openssl-1.0.2u" "OpenSSL extract"
@@ -175,6 +189,9 @@ if [ ! -f "$BOOST_DIR/stage/lib/libboost_system.a" ]; then
     if [ ! -f boost_1_53_0.tar.gz ]; then
         download "https://sourceforge.net/projects/boost/files/boost/1.53.0/boost_1_53_0.tar.gz" "boost_1_53_0.tar.gz"
     fi
+    
+    echo "    Validating tarball..."
+    validate_tarball boost_1_53_0.tar.gz "Boost" || fail "Boost tarball is corrupt" "Boost validation"
     
     echo "    Extracting..."
     tar xzf boost_1_53_0.tar.gz || fail "tar failed for Boost" "Boost extract"
@@ -229,13 +246,16 @@ if [ ! -f "$BDB_DIR/lib/libdb_cxx.a" ]; then
     mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "BDB prep"
     cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "BDB prep"
     
-    if [ ! -f db-5.3.28.tar.gz ]; then
+    if [ ! -f db-5.3.28.tar.gz ] || ! validate_tarball db-5.3.28.tar.gz "Berkeley DB"; then
         echo "    Downloading Berkeley DB 5.3.28..."
         # Try multiple mirrors since Oracle requires auth now
-        download "https://anduin.linuxfromscratch.org/BLFS/extras/berkeley-db/db-5.3.28.tar.gz" "db-5.3.28.tar.gz" || \
+        download "https://anduin.linuxfromscratch.org/BLFS/bdb/db-5.3.28.tar.gz" "db-5.3.28.tar.gz" || \
         download "https://sourceforge.net/projects/boost-db/files/berkeley-db-5.3.28.tar.gz" "db-5.3.28.tar.gz" || \
         fail "Failed to download Berkeley DB from all mirrors. Manually download db-5.3.28.tar.gz and place in depends/ directory." "BDB download"
     fi
+    
+    echo "    Validating tarball..."
+    validate_tarball db-5.3.28.tar.gz "Berkeley DB" || fail "Berkeley DB tarball is corrupt and re-download failed" "BDB validation"
     
     echo "    Extracting..."
     tar xzf db-5.3.28.tar.gz || fail "tar failed for Berkeley DB" "BDB extract"
@@ -278,6 +298,9 @@ if [ ! -f "$PCRE_DIR/lib/libpcre.a" ]; then
         download "https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz" "pcre-8.45.tar.gz"
     fi
     
+    echo "    Validating tarball..."
+    validate_tarball pcre-8.45.tar.gz "PCRE" || fail "PCRE tarball is corrupt" "PCRE validation"
+    
     echo "    Extracting..."
     tar xzf pcre-8.45.tar.gz || fail "tar failed for PCRE" "PCRE extract"
     cd pcre-8.45 || fail "Cannot cd to pcre-8.45" "PCRE extract"
@@ -318,6 +341,9 @@ if [ ! -f "$ZLIB_DIR/lib/libz.a" ]; then
         download "https://zlib.net/zlib-1.2.13.tar.gz" "zlib-1.2.13.tar.gz"
     fi
     
+    echo "    Validating tarball..."
+    validate_tarball zlib-1.2.13.tar.gz "zlib" || fail "zlib tarball is corrupt" "zlib validation"
+    
     echo "    Extracting..."
     tar xzf zlib-1.2.13.tar.gz || fail "tar failed for zlib" "zlib extract"
     cd zlib-1.2.13 || fail "Cannot cd to zlib-1.2.13" "zlib extract"
@@ -354,6 +380,9 @@ if [ ! -f "$EXPAT_DIR/lib/libexpat.a" ]; then
     if [ ! -f expat-2.5.0.tar.gz ]; then
         download "https://github.com/libexpat/libexpat/releases/download/R_2_5_0/expat-2.5.0.tar.gz" "expat-2.5.0.tar.gz"
     fi
+    
+    echo "    Validating tarball..."
+    validate_tarball expat-2.5.0.tar.gz "expat" || fail "expat tarball is corrupt" "expat validation"
     
     echo "    Extracting..."
     tar xzf expat-2.5.0.tar.gz || fail "tar failed for expat" "expat extract"
@@ -393,6 +422,9 @@ if [ ! -f "$FREETYPE_DIR/lib/libfreetype.a" ]; then
     if [ ! -f freetype-2.13.2.tar.gz ]; then
         download "https://downloads.sourceforge.net/freetype/freetype-2.13.2.tar.gz" "freetype-2.13.2.tar.gz"
     fi
+    
+    echo "    Validating tarball..."
+    validate_tarball freetype-2.13.2.tar.gz "FreeType" || fail "FreeType tarball is corrupt" "FreeType validation"
     
     echo "    Extracting..."
     tar xzf freetype-2.13.2.tar.gz || fail "tar failed for FreeType" "FreeType extract"
@@ -434,6 +466,9 @@ if [ ! -f "$PNG_DIR/lib/libpng.a" ]; then
         download "https://downloads.sourceforge.net/libpng/libpng-1.6.43.tar.gz" "libpng-1.6.43.tar.gz"
     fi
     
+    echo "    Validating tarball..."
+    validate_tarball libpng-1.6.43.tar.gz "libpng" || fail "libpng tarball is corrupt" "libpng validation"
+    
     echo "    Extracting..."
     tar xzf libpng-1.6.43.tar.gz || fail "tar failed for libpng" "libpng extract"
     cd libpng-1.6.43 || fail "Cannot cd to libpng-1.6.43" "libpng extract"
@@ -473,6 +508,9 @@ if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ]; then
         download "https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/2.1.5.1/libjpeg-turbo-2.1.5.1.tar.gz" "libjpeg-turbo-2.1.5.1.tar.gz"
     fi
     
+    echo "    Validating tarball..."
+    validate_tarball libjpeg-turbo-2.1.5.1.tar.gz "libjpeg-turbo" || fail "libjpeg-turbo tarball is corrupt" "libjpeg validation"
+    
     echo "    Extracting..."
     tar xzf libjpeg-turbo-2.1.5.1.tar.gz || fail "tar failed for libjpeg-turbo" "libjpeg extract"
     cd libjpeg-turbo-2.1.5.1 || fail "Cannot cd to libjpeg-turbo-2.1.5.1" "libjpeg extract"
@@ -511,6 +549,9 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
     if [ ! -f fontconfig-2.13.1.tar.gz ]; then
         download "https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.13.1/fontconfig-2.13.1.tar.gz" "fontconfig-2.13.1.tar.gz"
     fi
+    
+    echo "    Validating tarball..."
+    validate_tarball fontconfig-2.13.1.tar.gz "fontconfig" || fail "fontconfig tarball is corrupt" "fontconfig validation"
     
     echo "    Extracting..."
     tar xzf fontconfig-2.13.1.tar.gz || fail "tar failed for fontconfig" "fontconfig extract"
@@ -614,6 +655,9 @@ if [ "$BUILD_QT" = "1" ]; then
         if [ ! -f qt-everywhere-opensource-src-4.7.4.tar.gz ]; then
             download "https://download.qt.io/archive/qt/4.7/qt-everywhere-opensource-src-4.7.4.tar.gz" "qt-everywhere-opensource-src-4.7.4.tar.gz"
         fi
+        
+        echo "    Validating tarball..."
+        validate_tarball qt-everywhere-opensource-src-4.7.4.tar.gz "Qt" || fail "Qt tarball is corrupt" "Qt validation"
         
         echo "    Extracting..."
         tar xzf qt-everywhere-opensource-src-4.7.4.tar.gz || fail "tar failed for Qt" "Qt extract"
