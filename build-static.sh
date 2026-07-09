@@ -694,14 +694,18 @@ if [ ! -f "$MINIUPNPC_DIR/lib/libminiupnpc.a" ]; then
     echo "    [i] Found: $LIB_FOUND"
     cp -f "$LIB_FOUND" "$MINIUPNPC_DIR/lib/" || fail "Cannot copy libminiupnpc.a" "miniupnpc install"
     
-    # Copy headers into include/miniupnpc/ to match #include <miniupnpc/...>
-    for hdr in miniupnpc.h miniwget.h upnpcommands.h upnperrors.h; do
-        if [ -f "$hdr" ]; then
-            cp -f "$hdr" "$MINIUPNPC_DIR/include/miniupnpc/"
-        elif [ -f "include/$hdr" ]; then
-            cp -f "include/$hdr" "$MINIUPNPC_DIR/include/miniupnpc/"
-        fi
-    done
+    # Copy ALL headers from source to include/miniupnpc/
+    echo "    [i] Copying miniupnpc headers..."
+    if [ -d "include" ]; then
+        cp -f include/*.h "$MINIUPNPC_DIR/include/miniupnpc/"
+    fi
+    if [ -d "includes" ]; then
+        cp -f includes/*.h "$MINIUPNPC_DIR/include/miniupnpc/"
+    fi
+    cp -f *.h "$MINIUPNPC_DIR/include/miniupnpc/" 2>/dev/null || true
+    
+    echo "    [i] Headers in $MINIUPNPC_DIR/include/miniupnpc/:"
+    ls -la "$MINIUPNPC_DIR/include/miniupnpc/"
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "miniupnpc cleanup"
     echo "[+] miniupnpc 2.2.6 built successfully"
