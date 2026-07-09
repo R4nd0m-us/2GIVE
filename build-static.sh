@@ -670,7 +670,7 @@ if [ ! -f "$MINIUPNPC_DIR/lib/libminiupnpc.a" ]; then
     make -j$(nproc) || fail "make failed for miniupnpc" "miniupnpc compile"
     
     echo "    Installing..."
-    mkdir -p "$MINIUPNPC_DIR/lib" "$MINIUPNPC_DIR/include"
+    mkdir -p "$MINIUPNPC_DIR/lib" "$MINIUPNPC_DIR/include/miniupnpc"
     
     # Find the built library (could be in current dir or build/ subdir)
     LIB_FOUND=""
@@ -694,12 +694,12 @@ if [ ! -f "$MINIUPNPC_DIR/lib/libminiupnpc.a" ]; then
     echo "    [i] Found: $LIB_FOUND"
     cp -f "$LIB_FOUND" "$MINIUPNPC_DIR/lib/" || fail "Cannot copy libminiupnpc.a" "miniupnpc install"
     
-    # Copy headers
+    # Copy headers into include/miniupnpc/ to match #include <miniupnpc/...>
     for hdr in miniupnpc.h miniwget.h upnpcommands.h upnperrors.h; do
         if [ -f "$hdr" ]; then
-            cp -f "$hdr" "$MINIUPNPC_DIR/include/"
+            cp -f "$hdr" "$MINIUPNPC_DIR/include/miniupnpc/"
         elif [ -f "include/$hdr" ]; then
-            cp -f "include/$hdr" "$MINIUPNPC_DIR/include/"
+            cp -f "include/$hdr" "$MINIUPNPC_DIR/include/miniupnpc/"
         fi
     done
     
