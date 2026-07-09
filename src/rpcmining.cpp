@@ -521,13 +521,13 @@ Value getblocktemplate(const Array& params, bool fHelp)
             BOOST_FOREACH (MapPrevTx::value_type& inp, mapInputs)
             {
                 if (setTxIndex.count(inp.first))
-                    deps.push_back(setTxIndex[inp.first]);
+                    deps.push_back((boost::int64_t)setTxIndex[inp.first]);
             }
             entry.push_back(Pair("depends", deps));
 
             int64_t nSigOps = tx.GetLegacySigOpCount();
             nSigOps += tx.GetP2SHSigOpCount(mapInputs);
-            entry.push_back(Pair("sigops", nSigOps));
+            entry.push_back(Pair("sigops", (boost::int64_t)nSigOps));
         }
 
         transactions.push_back(entry);
