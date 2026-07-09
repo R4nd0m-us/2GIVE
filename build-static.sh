@@ -665,10 +665,41 @@ if [ ! -f "$MINIUPNPC_DIR/lib/libminiupnpc.a" ]; then
     echo "    Using upstream Makefile directly (no configure step)"
     
     echo "    Compiling..."
-    make -j$(nproc) STATIC=1 || fail "make failed for miniupnpc" "miniupnpc compile"
+    make -j$(nproc) || fail "make failed for miniupnpc" "miniupnpc compile"
     
     echo "    Installing..."
-    make install PREFIX="$MINIUPNPC_DIR" || fail "make install failed for miniupnpc" "miniupnpc install"
+    mkdir -p "$MINIUPNPC_DIR/lib" "$MINIUPNPC_DIR/include"
+    
+    # Find the built library (could be in current dir or build/ subdir)
+    LIB_FOUND=""
+    if [ -f "libminiupnpc.a" ]; then
+        LIB_FOUND="libminiupnpc.a"
+    elif [ -f "build/libminiupnpc.a" ]; then
+        LIB_FOUND="build/libminiupnpc.a"
+    elif [ -f "build/lib/.libs/libminiupnpc.a" ]; then
+        LIB_FOUND="build/lib/.libs/libminiupnpc.a"
+    fi
+    
+    if [ -z "$LIB_FOUND" ]; then
+        echo "    [i] Searching for libminiupnpc.a..."
+        LIB_FOUND=$(find . -name "libminiupnpc.a" -type f | head -n1)
+    fi
+    
+    if [ -z "$LIB_FOUND" ] || [ ! -f "$LIB_FOUND" ]; then
+        fail "libminiupnpc.a not found after make" "miniupnpc install"
+    fi
+    
+    echo "    [i] Found: $LIB_FOUND"
+    cp -f "$LIB_FOUND" "$MINIUPNPC_DIR/lib/" || fail "Cannot copy libminiupnpc.a" "miniupnpc install"
+    
+    # Copy headers
+    for hdr in miniupnpc.h miniwget.h upnpcommands.h upnperrors.h; do
+        if [ -f "$hdr" ]; then
+            cp -f "$hdr" "$MINIUPNPC_DIR/include/"
+        elif [ -f "include/$hdr" ]; then
+            cp -f "include/$hdr" "$MINIUPNPC_DIR/include/"
+        fi
+    done
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "miniupnpc cleanup"
     echo "[+] miniupnpc 2.2.6 built successfully"
