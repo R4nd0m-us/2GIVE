@@ -596,10 +596,10 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
         --disable-docs || fail "./configure failed for fontconfig" "fontconfig configure"
     
     echo "    Compiling..."
-    make -j$(nproc) || fail "make failed for fontconfig" "fontconfig compile"
+    make -j$(nproc) -C src || fail "make failed for fontconfig library" "fontconfig compile"
     
     echo "    Installing..."
-    make install || fail "make install failed for fontconfig" "fontconfig install"
+    make install -C src || fail "make install failed for fontconfig" "fontconfig install"
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "fontconfig cleanup"
     echo "[+] fontconfig 2.13.1 built successfully"
