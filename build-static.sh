@@ -656,10 +656,12 @@ if [ ! -f "$MINIUPNPC_DIR/lib/libminiupnpc.a" ]; then
     cd miniupnpc-2.2.6 || fail "Cannot cd to miniupnpc-2.2.6" "miniupnpc extract"
     
     echo "    Preparing build system..."
-    if [ ! -f configure ] && [ ! -f Makefile.linux ]; then
-        echo "    No configure or Makefile.linux found, running autoreconf..."
-        autoreconf -fi || fail "autoreconf failed for miniupnpc" "miniupnpc autotools"
+    if [ ! -f Makefile ]; then
+        fail "No Makefile found in miniupnpc source" "miniupnpc prep"
     fi
+    
+    echo "    Configuring..."
+    echo "    Using upstream Makefile directly (no configure step)"
     
     echo "    Configuring..."
     echo "    Using upstream Makefile directly (no configure step)"
