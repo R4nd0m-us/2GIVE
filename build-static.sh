@@ -826,7 +826,7 @@ fi
 # ============================================================================
 echo ""
 echo "[*] Building 2GiveCoind and 2GiveCoin-cli (fully static)..."
-cd src || fail "Cannot cd to src" "project build"
+cd "$SCRIPT_DIR/src" || fail "Cannot cd to src" "project build"
 
 # Clean previous build
 make -f makefile.unix clean || fail "make clean failed" "project build"
