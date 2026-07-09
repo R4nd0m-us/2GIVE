@@ -142,7 +142,7 @@ OBJS_SSE2= obj/scrypt-sse2.o
 OBJS += $(OBJS_SSE2)
 endif
 
-all: 2GiveCoind 2GiveCoin-cli
+all: 2GiveCoind
 
 test check: test_2GiveCoin FORCE
 	./test_2GiveCoin
@@ -172,9 +172,6 @@ obj/%.o: %.cpp
 2GiveCoind: $(OBJS:obj/%=obj/%)
 	$(LINK) $(xCXXFLAGS) -o $@ $^ $(xLDFLAGS) $(LIBS)
 
-2GiveCoin-cli: $(filter-out obj/init.o,$(OBJS:obj/%=obj/%)) obj/2GiveCoin-cli.o
-	$(LINK) $(xCXXFLAGS) -o $@ $^ $(xLDFLAGS) $(LIBS)
-
 TESTOBJS := $(patsubst test/%.cpp,obj-test/%.o,$(wildcard test/*.cpp))
 
 obj-test/%.o: test/%.cpp
@@ -188,7 +185,7 @@ test_2GiveCoin: $(TESTOBJS) $(filter-out obj/init.o,$(OBJS:obj/%=obj/%))
 	$(LINK) $(xCXXFLAGS) -o $@ $(LIBPATHS) $^ -Wl,-B$(LMODE) -lboost_unit_test_framework $(xLDFLAGS) $(LIBS)
 
 clean:
-	-rm -f 2GiveCoind 2GiveCoin-cli test_2GiveCoin
+	-rm -f 2GiveCoind test_2GiveCoin
 	-rm -f obj/*.o
 	-rm -f obj-test/*.o
 	-rm -f obj/*.P
