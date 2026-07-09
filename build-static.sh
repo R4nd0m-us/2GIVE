@@ -615,26 +615,50 @@ FONTCONFIG_LIB="$FONTCONFIG_DIR/lib"
 echo ""
 echo "[*] Verifying all dependencies were built..."
 missing=0
-for lib in "$OPENSSL_DIR/lib/libssl.a" \
-          "$BOOST_DIR/stage/lib/libboost_system.a" \
-          "$BDB_DIR/lib/libdb_cxx.a" \
-          "$PCRE_DIR/lib/libpcre.a" \
-          "$ZLIB_DIR/lib/libz.a" \
-          "$EXPAT_DIR/lib/libexpat.a" \
-          "$FREETYPE_DIR/lib/libfreetype.a" \
-          "$PNG_DIR/lib/libpng.a" \
-          "$JPEG_DIR/lib/libjpeg.a" \
-          "$FONTCONFIG_DIR/lib/libfontconfig.a"; do
-    if [ ! -f "$lib" ]; then
-        echo "    MISSING: $lib"
+
+check_lib() {
+    local path="$1"
+    local name="$2"
+    if [ ! -f "$path" ]; then
+        echo "    MISSING: $path"
         missing=$((missing + 1))
+    else
+        echo "    [+] $name: $path"
     fi
-done
+}
+
+check_lib "$OPENSSL_DIR/lib/libssl.a" "OpenSSL"
+check_lib "$BOOST_DIR/stage/lib/libboost_system.a" "Boost system"
+check_lib "$BOOST_DIR/stage/lib/libboost_filesystem.a" "Boost filesystem"
+check_lib "$BOOST_DIR/stage/lib/libboost_program_options.a" "Boost program_options"
+check_lib "$BOOST_DIR/stage/lib/libboost_thread.a" "Boost thread"
+check_lib "$BOOST_DIR/stage/lib/libboost_chrono.a" "Boost chrono"
+check_lib "$BOOST_DIR/stage/lib/libboost_date_time.a" "Boost date_time"
+check_lib "$BDB_DIR/lib/libdb_cxx.a" "Berkeley DB"
+check_lib "$PCRE_DIR/lib/libpcre.a" "PCRE"
+check_lib "$ZLIB_DIR/lib/libz.a" "zlib"
+check_lib "$EXPAT_DIR/lib/libexpat.a" "expat"
+check_lib "$FREETYPE_DIR/lib/libfreetype.a" "FreeType"
+check_lib "$PNG_DIR/lib/libpng.a" "libpng"
+
+# libjpeg-turbo may install as libjpeg.a or libjpeg-static.a
+if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ] && [ ! -f "$JPEG_DIR/lib/libjpeg-static.a" ]; then
+    echo "    MISSING: $JPEG_DIR/lib/libjpeg.a (or libjpeg-static.a)"
+    missing=$((missing + 1))
+else
+    if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ] && [ -f "$JPEG_DIR/lib/libjpeg-static.a" ]; then
+        echo "    [i] libjpeg-static.a found, creating symlink as libjpeg.a"
+        ln -sf libjpeg-static.a "$JPEG_DIR/lib/libjpeg.a"
+    fi
+    echo "    [+] libjpeg: $JPEG_DIR/lib/libjpeg.a"
+fi
+
+check_lib "$FONTCONFIG_DIR/lib/libfontconfig.a" "fontconfig"
 
 if [ $missing -gt 0 ]; then
     fail "$missing dependencies are missing after build" "verification"
 fi
-echo "[+] All $missing dependencies verified (0 missing)"
+echo "[+] All dependencies verified (0 missing)"
 
 # ============================================================================
 # Summary
