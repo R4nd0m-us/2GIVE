@@ -542,19 +542,29 @@ if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ]; then
     cmake --install . || fail "cmake install failed for libjpeg-turbo" "libjpeg install"
     
     # Ensure library is in the expected location
+    JPEG_SRC_DIR="$DEPENDS/libjpeg-turbo-2.1.5.1"
+    JPEG_BUILD_DIR="$JPEG_SRC_DIR/build"
     if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ]; then
         echo "    [i] cmake install may not have placed libjpeg.a in expected location"
-        if [ -f "lib/libjpeg.a" ]; then
-            echo "    [i] Copying libjpeg.a from build/lib to $JPEG_DIR/lib/"
+        echo "    [i] Checking in: $JPEG_BUILD_DIR/"
+        if [ -f "$JPEG_BUILD_DIR/libjpeg.a" ]; then
+            echo "    [i] Found libjpeg.a, copying to $JPEG_DIR/lib/"
             mkdir -p "$JPEG_DIR/lib"
-            cp -f lib/libjpeg.a "$JPEG_DIR/lib/"
-        elif [ -f "lib/libjpeg-static.a" ]; then
-            echo "    [i] Copying libjpeg-static.a from build/lib to $JPEG_DIR/lib/libjpeg.a"
+            cp -f "$JPEG_BUILD_DIR/libjpeg.a" "$JPEG_DIR/lib/"
+        elif [ -f "$JPEG_BUILD_DIR/lib/libjpeg.a" ]; then
+            echo "    [i] Found libjpeg.a in build/lib/, copying to $JPEG_DIR/lib/"
             mkdir -p "$JPEG_DIR/lib"
-            cp -f lib/libjpeg-static.a "$JPEG_DIR/lib/libjpeg.a"
+            cp -f "$JPEG_BUILD_DIR/lib/libjpeg.a" "$JPEG_DIR/lib/"
+        elif [ -f "$JPEG_BUILD_DIR/libjpeg-static.a" ]; then
+            echo "    [i] Found libjpeg-static.a, copying to $JPEG_DIR/lib/libjpeg.a"
+            mkdir -p "$JPEG_DIR/lib"
+            cp -f "$JPEG_BUILD_DIR/libjpeg-static.a" "$JPEG_DIR/lib/libjpeg.a"
         else
+            echo "    [i] Contents of $JPEG_BUILD_DIR/:"
+            ls -la "$JPEG_BUILD_DIR/" 2>/dev/null || echo "    [i] Directory does not exist"
             fail "libjpeg.a not found after cmake install" "libjpeg install"
         fi
+    fi
     fi
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "libjpeg cleanup"
