@@ -565,7 +565,6 @@ if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ]; then
             fail "libjpeg.a not found after cmake install" "libjpeg install"
         fi
     fi
-    fi
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "libjpeg cleanup"
     echo "[+] libjpeg-turbo 2.1.5.1 built successfully"
