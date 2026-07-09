@@ -655,6 +655,12 @@ if [ ! -f "$MINIUPNPC_DIR/lib/libminiupnpc.a" ]; then
     tar xzf miniupnpc-2.2.6.tar.gz || fail "tar failed for miniupnpc" "miniupnpc extract"
     cd miniupnpc-2.2.6 || fail "Cannot cd to miniupnpc-2.2.6" "miniupnpc extract"
     
+    echo "    Preparing build system..."
+    if [ ! -f configure ]; then
+        echo "    No configure script found, running autoreconf..."
+        autoreconf -fi || fail "autoreconf failed for miniupnpc" "miniupnpc autotools"
+    fi
+    
     echo "    Configuring..."
     CC=gcc CXX=g++ \
     ./configure \
