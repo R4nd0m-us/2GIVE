@@ -582,7 +582,7 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
     export CC=gcc CXX=g++
     export PATH="$FREETYPE_DIR/bin:$PATH"
     export PKG_CONFIG_PATH="$FREETYPE_DIR/lib/pkgconfig:$EXPAT_LIB/pkgconfig"
-    export CPPFLAGS="-I$ZLIB_INCLUDE -I$FREETYPE_INCLUDE -I$EXPAT_INCLUDE"
+    export CPPFLAGS="-I$ZLIB_INCLUDE -I$FREETYPE_INCLUDE -I$FREETYPE_INCLUDE/freetype2 -I$EXPAT_INCLUDE"
     export LDFLAGS="-L$ZLIB_LIB -L$FREETYPE_LIB -L$EXPAT_LIB"
     ./configure \
         --prefix="$FONTCONFIG_DIR" \
@@ -591,7 +591,7 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
         --with-expat="$EXPAT_DIR" \
         --with-freetype-prefix="$FREETYPE_DIR" \
         --with-freetype-config="$FREETYPE_DIR/bin/freetype-config" \
-        FREETYPE_CFLAGS="-I$FREETYPE_INCLUDE" \
+        FREETYPE_CFLAGS="-I$FREETYPE_INCLUDE -I$FREETYPE_INCLUDE/freetype2" \
         FREETYPE_LIBS="-L$FREETYPE_LIB -lfreetype" \
         --disable-docs || fail "./configure failed for fontconfig" "fontconfig configure"
     
