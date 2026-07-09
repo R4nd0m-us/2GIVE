@@ -584,8 +584,6 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
     export PKG_CONFIG_PATH="$FREETYPE_DIR/lib/pkgconfig:$EXPAT_LIB/pkgconfig"
     export CPPFLAGS="-I$ZLIB_INCLUDE -I$FREETYPE_INCLUDE -I$EXPAT_INCLUDE"
     export LDFLAGS="-L$ZLIB_LIB -L$FREETYPE_LIB -L$EXPAT_LIB"
-    export FREETYPE_CFLAGS="-I$FREETYPE_INCLUDE"
-    export FREETYPE_LIBS="-L$FREETYPE_LIB -lfreetype"
     ./configure \
         --prefix="$FONTCONFIG_DIR" \
         --disable-shared \
@@ -593,6 +591,8 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
         --with-expat="$EXPAT_DIR" \
         --with-freetype-prefix="$FREETYPE_DIR" \
         --with-freetype-config="$FREETYPE_DIR/bin/freetype-config" \
+        FREETYPE_CFLAGS="-I$FREETYPE_INCLUDE" \
+        FREETYPE_LIBS="-L$FREETYPE_LIB -lfreetype" \
         --disable-docs || fail "./configure failed for fontconfig" "fontconfig configure"
     
     echo "    Compiling..."
