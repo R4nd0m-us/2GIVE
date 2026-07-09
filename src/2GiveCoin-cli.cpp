@@ -4,6 +4,7 @@
 
 #include "init.h"
 #include "util.h"
+#include "bitcoinrpc.h"
 
 int main(int argc, char *argv[])
 {
