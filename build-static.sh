@@ -916,9 +916,13 @@ cd "$SCRIPT_DIR/src" || fail "Cannot cd to src" "project build"
 # Clean previous build
 make -f makefile.unix clean || fail "make clean failed" "project build"
 
-# Build with static linking against all depends/ libraries
+# Build with static linking against all depends/ libraries.
+# Use STATIC=1 (partial static): embeds the bundled deps (boost/bdb/openssl/
+# pcre/miniupnpc) but links libc/libgcc/libstdc++/z/pthread dynamically.
+# STATIC=all forces -Wl,-Bstatic globally, which fails to find libgcc_s.a
+# (no static archive exists) and breaks glibc getaddrinfo (NSS) at runtime.
 make -f makefile.unix \
-    STATIC=all \
+    STATIC=1 \
     USE_SSE2=1 \
     BOOST_INCLUDE_PATH="$BOOST_INCLUDE" \
     BOOST_LIB_PATH="$BOOST_LIB" \
@@ -935,7 +939,7 @@ make -f makefile.unix \
     BOOST_LIB_SUFFIX="" \
     BDB_LIB_SUFFIX="$BDB_LIB_SUFFIX" \
     DEBUGFLAGS="-g" \
-    CXXFLAGS="-std=gnu++11 -DBOOST_NO_CSTDINT" \
+    CXXFLAGS="-std=gnu++11 -DBOOST_NO_CSTDINT -static-libgcc -static-libstdc++" \
     all || fail "make failed for 2GiveCoin" "project build"
 
 cd ..
