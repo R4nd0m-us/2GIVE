@@ -28,6 +28,7 @@
  */
 
 #include "scrypt.h"
+#include "pbkdf2.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
