@@ -111,7 +111,7 @@ fi
 echo "[*] Ensuring system dependencies..."
 sudo apt-get update -qq || fail "apt-get update failed" "system deps"
 sudo apt-get install -y -qq \
-    build-essential pkg-config autoconf cmake \
+    build-essential pkg-config autoconf cmake gperf \
     libx11-dev libxext-dev libxrender-dev \
     libgl1-mesa-dev libglu1-mesa-dev \
     libxcb1-dev libx11-xcb-dev libxkbcommon-dev \
@@ -635,6 +635,48 @@ FONTCONFIG_INCLUDE="$FONTCONFIG_DIR/include"
 FONTCONFIG_LIB="$FONTCONFIG_DIR/lib"
 
 # ============================================================================
+# miniupnpc 2.2.6 (UPNP library)
+# ============================================================================
+MINIUPNPC_DIR="$DEPENDS/miniupnpc"
+if [ ! -f "$MINIUPNPC_DIR/lib/libminiupnpc.a" ]; then
+    echo ""
+    echo "[*] Building miniupnpc 2.2.6 (static)..."
+    mkdir -p "$DEPENDS" || fail "Cannot mkdir $DEPENDS" "miniupnpc prep"
+    cd "$DEPENDS" || fail "Cannot cd to $DEPENDS" "miniupnpc prep"
+    
+    if [ ! -f miniupnpc-2.2.6.tar.gz ]; then
+        download "https://miniupnp.tuxfamily.org/files/miniupnpc-2.2.6.tar.gz" "miniupnpc-2.2.6.tar.gz"
+    fi
+    
+    echo "    Validating tarball..."
+    validate_tarball miniupnpc-2.2.6.tar.gz "miniupnpc" || fail "miniupnpc tarball is corrupt" "miniupnpc validation"
+    
+    echo "    Extracting..."
+    tar xzf miniupnpc-2.2.6.tar.gz || fail "tar failed for miniupnpc" "miniupnpc extract"
+    cd miniupnpc-2.2.6 || fail "Cannot cd to miniupnpc-2.2.6" "miniupnpc extract"
+    
+    echo "    Configuring..."
+    CC=gcc CXX=g++ \
+    ./configure \
+        --prefix="$MINIUPNPC_DIR" \
+        --disable-shared \
+        --enable-static || fail "./configure failed for miniupnpc" "miniupnpc configure"
+    
+    echo "    Compiling..."
+    make -j$(nproc) || fail "make failed for miniupnpc" "miniupnpc compile"
+    
+    echo "    Installing..."
+    make install || fail "make install failed for miniupnpc" "miniupnpc install"
+    
+    cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "miniupnpc cleanup"
+    echo "[+] miniupnpc 2.2.6 built successfully"
+else
+    echo "[+] Using cached miniupnpc build"
+fi
+MINIUPNPC_INCLUDE="$MINIUPNPC_DIR/include"
+MINIUPNPC_LIB="$MINIUPNPC_DIR/lib"
+
+# ============================================================================
 # Verify all dependencies are present
 # ============================================================================
 echo ""
@@ -679,6 +721,7 @@ else
 fi
 
 check_lib "$FONTCONFIG_DIR/lib/libfontconfig.a" "fontconfig"
+check_lib "$MINIUPNPC_DIR/lib/libminiupnpc.a" "miniupnpc"
 
 if [ $missing -gt 0 ]; then
     fail "$missing dependencies are missing after build" "verification"
@@ -700,6 +743,7 @@ echo "  FreeType:    $FREETYPE_DIR"
 echo "  libpng:      $PNG_DIR"
 echo "  libjpeg:     $JPEG_DIR"
 echo "  fontconfig:  $FONTCONFIG_DIR"
+echo "  miniupnpc:   $MINIUPNPC_DIR"
 echo ""
 echo "All dependencies are built in: $DEPENDS/"
 echo ""
@@ -714,6 +758,8 @@ echo "  PCRE_INCLUDE_PATH=$PCRE_INCLUDE"
 echo "  PCRE_LIB_PATH=$PCRE_LIB"
 echo "  ZLIB_INCLUDE_PATH=$ZLIB_INCLUDE"
 echo "  ZLIB_LIB_PATH=$ZLIB_LIB"
+echo "  MINIUPNPC_INCLUDE_PATH=$MINIUPNPC_INCLUDE"
+echo "  MINIUPNPC_LIB_PATH=$MINIUPNPC_LIB"
 echo ""
 
 # ============================================================================
@@ -845,6 +891,8 @@ make -f makefile.unix \
     PCRE_LIB_PATH="$PCRE_LIB" \
     ZLIB_INCLUDE_PATH="$ZLIB_INCLUDE" \
     ZLIB_LIB_PATH="$ZLIB_LIB" \
+    MINIUPNPC_INCLUDE_PATH="$MINIUPNPC_INCLUDE" \
+    MINIUPNPC_LIB_PATH="$MINIUPNPC_LIB" \
     BOOST_LIB_SUFFIX="" \
     BDB_LIB_SUFFIX="$BDB_LIB_SUFFIX" \
     DEBUGFLAGS="-g" \
