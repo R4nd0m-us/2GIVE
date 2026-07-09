@@ -541,6 +541,22 @@ if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ]; then
     echo "    Installing..."
     cmake --install . || fail "cmake install failed for libjpeg-turbo" "libjpeg install"
     
+    # Ensure library is in the expected location
+    if [ ! -f "$JPEG_DIR/lib/libjpeg.a" ]; then
+        echo "    [i] cmake install may not have placed libjpeg.a in expected location"
+        if [ -f "lib/libjpeg.a" ]; then
+            echo "    [i] Copying libjpeg.a from build/lib to $JPEG_DIR/lib/"
+            mkdir -p "$JPEG_DIR/lib"
+            cp -f lib/libjpeg.a "$JPEG_DIR/lib/"
+        elif [ -f "lib/libjpeg-static.a" ]; then
+            echo "    [i] Copying libjpeg-static.a from build/lib to $JPEG_DIR/lib/libjpeg.a"
+            mkdir -p "$JPEG_DIR/lib"
+            cp -f lib/libjpeg-static.a "$JPEG_DIR/lib/libjpeg.a"
+        else
+            fail "libjpeg.a not found after cmake install" "libjpeg install"
+        fi
+    fi
+    
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "libjpeg cleanup"
     echo "[+] libjpeg-turbo 2.1.5.1 built successfully"
 else
