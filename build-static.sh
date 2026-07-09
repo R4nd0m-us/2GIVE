@@ -935,7 +935,7 @@ make -f makefile.unix \
     BOOST_LIB_SUFFIX="" \
     BDB_LIB_SUFFIX="$BDB_LIB_SUFFIX" \
     DEBUGFLAGS="-g" \
-    CXXFLAGS="-std=gnu++11" \
+    CXXFLAGS="-std=gnu++11 -DBOOST_NO_CSTDINT" \
     all || fail "make failed for 2GiveCoin" "project build"
 
 cd ..

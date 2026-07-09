@@ -96,8 +96,8 @@ static const int64 nMaxClockDrift = 2 * 60 * 60;        // two hours
 
 // static const int64 nMaxClockDrift = 5 * 60 + 30;        // 5 minutes / aligned with 2X target blocktime (nStakeTargetSpacing = 120)
 
-inline int64_t PastDrift(int64_t nTime) { return nTime - (2 * 60 * 60); }   // up to 2hrs from the past
-inline int64_t FutureDrift(int64_t nTime) { return nTime + (2 * 60 * 60); } // up to 2hrs in the future
+inline boost::int64_t PastDrift(boost::int64_t nTime) { return nTime - (2 * 60 * 60); }   // up to 2hrs from the past
+inline boost::int64_t FutureDrift(boost::int64_t nTime) { return nTime + (2 * 60 * 60); } // up to 2hrs in the future
 
 extern CScript COINBASE_FLAGS;
 
