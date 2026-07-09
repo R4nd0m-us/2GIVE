@@ -438,22 +438,20 @@ if [ ! -f "$FREETYPE_DIR/lib/libfreetype.a" ]; then
     
     echo "    Configuring..."
     CC=gcc CXX=g++ \
-    mkdir -p build && cd build && \
-    cmake .. \
-        -DCMAKE_INSTALL_PREFIX="$FREETYPE_DIR" \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DBUILD_SHARED_LIBS=OFF \
-        -DCMAKE_C_FLAGS="-O2 -msse2 -pthread -fPIC" \
-        -DCMAKE_EXE_LINKER_FLAGS="-static" \
-        -DZLIB_ROOT="$ZLIB_DIR" \
-        -DZLIB_INCLUDE_DIR="$ZLIB_INCLUDE" \
-        -DZLIB_LIBRARY="$ZLIB_LIB/libz.a" || fail "cmake configure failed for FreeType" "FreeType configure"
+    CPPFLAGS="-I$ZLIB_INCLUDE" LDFLAGS="-L$ZLIB_LIB" \
+    ./configure \
+        --prefix="$FREETYPE_DIR" \
+        --disable-shared \
+        --enable-static \
+        --with-pic \
+        --without-harfbuzz \
+        --with-zlib="$ZLIB_DIR" || fail "./configure failed for FreeType" "FreeType configure"
     
     echo "    Compiling..."
-    cmake --build . -- -j$(nproc) || fail "cmake build failed for FreeType" "FreeType compile"
+    make -j$(nproc) || fail "make failed for FreeType" "FreeType compile"
     
     echo "    Installing..."
-    cmake --install . || fail "cmake install failed for FreeType" "FreeType install"
+    make install || fail "make install failed for FreeType" "FreeType install"
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "FreeType cleanup"
     echo "[+] FreeType 2.13.2 built successfully"
@@ -581,18 +579,19 @@ if [ ! -f "$FONTCONFIG_DIR/lib/libfontconfig.a" ]; then
     fi
     
     echo "    Configuring..."
-    CC=gcc CXX=g++ \
-    PATH="$FREETYPE_DIR/bin:$PATH" \
-    PKG_CONFIG_PATH="$FREETYPE_DIR/lib/pkgconfig:$EXPAT_LIB/pkgconfig" \
-    CPPFLAGS="-I$ZLIB_INCLUDE -I$FREETYPE_INCLUDE -I$EXPAT_INCLUDE" \
-    LDFLAGS="-L$ZLIB_LIB -L$FREETYPE_LIB -L$EXPAT_LIB" \
-    FREETYPE_CFLAGS="-I$FREETYPE_INCLUDE" \
-    FREETYPE_LIBS="-L$FREETYPE_LIB -lfreetype" \
+    export CC=gcc CXX=g++
+    export PATH="$FREETYPE_DIR/bin:$PATH"
+    export PKG_CONFIG_PATH="$FREETYPE_DIR/lib/pkgconfig:$EXPAT_LIB/pkgconfig"
+    export CPPFLAGS="-I$ZLIB_INCLUDE -I$FREETYPE_INCLUDE -I$EXPAT_INCLUDE"
+    export LDFLAGS="-L$ZLIB_LIB -L$FREETYPE_LIB -L$EXPAT_LIB"
+    export FREETYPE_CFLAGS="-I$FREETYPE_INCLUDE"
+    export FREETYPE_LIBS="-L$FREETYPE_LIB -lfreetype"
     ./configure \
         --prefix="$FONTCONFIG_DIR" \
         --disable-shared \
         --enable-static \
         --with-expat="$EXPAT_DIR" \
+        --with-freetype-prefix="$FREETYPE_DIR" \
         --with-freetype-config="$FREETYPE_DIR/bin/freetype-config" \
         --disable-docs || fail "./configure failed for fontconfig" "fontconfig configure"
     
