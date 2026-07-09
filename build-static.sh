@@ -907,10 +907,10 @@ else
 fi
 
 # ============================================================================
-# Build 2GiveCoind
+# Build 2GiveCoind and 2GiveCoin-cli
 # ============================================================================
 echo ""
-echo "[*] Building 2GiveCoind (partially static)..."
+echo "[*] Building 2GiveCoind and 2GiveCoin-cli (partially static)..."
 cd "$SCRIPT_DIR/src" || fail "Cannot cd to src" "project build"
 
 # Clean previous build
@@ -952,11 +952,20 @@ if [ -f src/2GiveCoind ]; then
     echo "    Size: $(du -h src/2GiveCoind | cut -f1)"
     echo "    Type: $(file src/2GiveCoind)"
 fi
+if [ -f src/2GiveCoin-cli ]; then
+    echo "  - src/2GiveCoin-cli (CLI)"
+    echo "    Size: $(du -h src/2GiveCoin-cli | cut -f1)"
+    echo "    Type: $(file src/2GiveCoin-cli)"
+fi
 echo ""
 echo "Static linkage check:"
 if [ -f src/2GiveCoind ]; then
     ldd src/2GiveCoind 2>/dev/null || echo "  (fully static or ldd not available)"
 fi
+if [ -f src/2GiveCoin-cli ]; then
+    ldd src/2GiveCoin-cli 2>/dev/null || echo "  (fully static or ldd not available)"
+fi
 echo ""
 echo "To test:"
 echo "  ./src/2GiveCoind -?        (show help)"
+echo "  ./src/2GiveCoin-cli -?     (show help)"
