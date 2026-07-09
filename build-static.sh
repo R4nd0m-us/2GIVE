@@ -656,23 +656,19 @@ if [ ! -f "$MINIUPNPC_DIR/lib/libminiupnpc.a" ]; then
     cd miniupnpc-2.2.6 || fail "Cannot cd to miniupnpc-2.2.6" "miniupnpc extract"
     
     echo "    Preparing build system..."
-    if [ ! -f configure ]; then
-        echo "    No configure script found, running autoreconf..."
+    if [ ! -f configure ] && [ ! -f Makefile.linux ]; then
+        echo "    No configure or Makefile.linux found, running autoreconf..."
         autoreconf -fi || fail "autoreconf failed for miniupnpc" "miniupnpc autotools"
     fi
     
     echo "    Configuring..."
-    CC=gcc CXX=g++ \
-    ./configure \
-        --prefix="$MINIUPNPC_DIR" \
-        --disable-shared \
-        --enable-static || fail "./configure failed for miniupnpc" "miniupnpc configure"
+    echo "    Using upstream Makefile directly (no configure step)"
     
     echo "    Compiling..."
-    make -j$(nproc) || fail "make failed for miniupnpc" "miniupnpc compile"
+    make -j$(nproc) STATIC=1 || fail "make failed for miniupnpc" "miniupnpc compile"
     
     echo "    Installing..."
-    make install || fail "make install failed for miniupnpc" "miniupnpc install"
+    make install PREFIX="$MINIUPNPC_DIR" || fail "make install failed for miniupnpc" "miniupnpc install"
     
     cd "$DEPENDS" || fail "Cannot cd back to $DEPENDS" "miniupnpc cleanup"
     echo "[+] miniupnpc 2.2.6 built successfully"
